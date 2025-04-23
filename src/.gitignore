@@ -114,8 +114,5 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# VSCODE IDE
-.vscode
-
 #Pycharm IDE
 .idea
