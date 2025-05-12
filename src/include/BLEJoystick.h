@@ -27,6 +27,7 @@ public:
     void stop();
     void startAdvertising();
     void stopAdvertising();
+    void disconnect();
     
     // Input state setters
     void setButtons(bool b1 = false, bool b2 = false, bool b3 = false, bool b4 = false, 

@@ -21,7 +21,7 @@
 // --- Battery ADC ---
 #define BATTERY_PIN 0
 #define POWER_KEY_PIN 1
-#define LED0_PIN 8
+#define CONNECT_LED_PIN 8
 
 // NES Pin Mapping
 #define CLK_PIN 2
@@ -38,7 +38,7 @@
 #define NES_BUTTON_LEFT 6
 #define NES_BUTTON_RIGHT 7
 
-#define IDLE_TIMEOUT 30000  // milliseconds
+#define IDLE_TIMEOUT 60000  // milliseconds
 #define ADVERTISING_TIMEOUT 30000  // milliseconds
 
 // Global objects
@@ -49,6 +49,10 @@ unsigned long lastActivityTime = 0;
 unsigned long advertisingStartTime = 0;
 int batteryLevel = 0;
 int prevBatteryLevel = 0;
+unsigned long startButtonPressTime = 0;
+unsigned long selectButtonPressTime = 0;
+const unsigned long POWER_OFF_HOLD_TIME = 5000; // 5 seconds
+const unsigned long RECONNECT_HOLD_TIME = 5000; // 5 seconds
 
 // Function prototypes
 void joystickStateCallback();
@@ -56,8 +60,8 @@ int readBatteryLevel();
 void readNESController();
 void powerOn();
 void powerOff();
-void lightOn();
-void lightOff();
+void connectionLightOn();
+void connectionLightOff();
 void checkTimers();
 
 void setup() {
@@ -67,7 +71,7 @@ void setup() {
   
   // Configure pins
   pinMode(POWER_KEY_PIN, OUTPUT);
-  pinMode(LED0_PIN, OUTPUT);
+  pinMode(CONNECT_LED_PIN, OUTPUT);
   pinMode(CLK_PIN, OUTPUT);
   pinMode(LATCH_PIN, OUTPUT);
   pinMode(DATA_PIN, INPUT_PULLUP);
@@ -104,7 +108,7 @@ void loop() {
   
   // Update joystick if state changed
   if (stateChanged) {
-    Serial.print("NES State: ");
+    Serial.print("NES state change: ");
     for (int i = 0; i < 8; i++) {
       Serial.print(buttonState[i] ? "1" : "0");
     }
@@ -150,7 +154,8 @@ void loop() {
       );
       joystick->notifyHIDReport();
       lastActivityTime = millis();
-    } else if (joystick->getState() == BLEJoystick::DEVICE_IDLE) {
+    } else if (joystick->getState() == BLEJoystick::DEVICE_IDLE && selectButtonPressTime == 0) {
+      Serial.println("Start advertising ...");
       joystick->startAdvertising();
       advertisingStartTime = millis();
     }
@@ -178,19 +183,19 @@ void loop() {
 void joystickStateCallback() {
   switch (joystick->getState()) {
     case BLEJoystick::DEVICE_IDLE:
-      Serial.println("Device idle...");
-      lightOff();
+      Serial.println("Device idle.");
+      connectionLightOff();
       lastActivityTime = millis();
       break;
       
     case BLEJoystick::DEVICE_ADVERTISING:
-      Serial.println("Device advertising...");
+      Serial.println("Device advertising.");
       advertisingStartTime = millis();
       break;
       
     case BLEJoystick::DEVICE_CONNECTED:
-      Serial.println("Device connected...");
-      lightOn();
+      Serial.println("Device connected.");
+      connectionLightOn();
       lastActivityTime = millis();
       // Send initial battery level
       joystick->setBatteryLevel(batteryLevel);
@@ -229,14 +234,14 @@ void readNESController() {
 }
 
 void powerOn() {
-  Serial.println("Powering on...");
+  Serial.println("Powering on ...");
   digitalWrite(POWER_KEY_PIN, LOW);
   delay(200);
   digitalWrite(POWER_KEY_PIN, HIGH);
 }
 
 void powerOff() {
-  Serial.println("Powering off...");
+  Serial.println("Powering off ...");
   // Sequence to trigger power off
   digitalWrite(POWER_KEY_PIN, LOW);
   delay(100);
@@ -250,12 +255,12 @@ void powerOff() {
   esp_deep_sleep_start();
 }
 
-void lightOn() {
-  digitalWrite(LED0_PIN, LOW);  // Active low
+void connectionLightOn() {
+  digitalWrite(CONNECT_LED_PIN, LOW);  // Active low
 }
 
-void lightOff() {
-  digitalWrite(LED0_PIN, HIGH); // Active low
+void connectionLightOff() {
+  digitalWrite(CONNECT_LED_PIN, HIGH); // Active low
 }
 
 void checkTimers() {
@@ -273,9 +278,51 @@ void checkTimers() {
       currentTime - advertisingStartTime > ADVERTISING_TIMEOUT) {
     Serial.println("Device advertising for too long, stopping...");
     joystick->stopAdvertising();
-    lightOff();
+    connectionLightOff();
   } else if (joystick->getState() == BLEJoystick::DEVICE_ADVERTISING) {
     // Blink LED while advertising
-    digitalWrite(LED0_PIN, (currentTime / 500) % 2 == 0);
+    digitalWrite(CONNECT_LED_PIN, (currentTime / 500) % 2 == 0);
+  }
+
+ // Check for start button long press (power off)
+  if (buttonState[NES_BUTTON_START]) {
+    // Start button pressed or still being held
+    if (startButtonPressTime == 0) {
+      // Just pressed, record time
+      startButtonPressTime = currentTime;
+    } else if (currentTime - startButtonPressTime >= POWER_OFF_HOLD_TIME) {
+      // Held for the required duration, power off
+      Serial.println("Start button held for 5 seconds, powering off...");
+      powerOff();
+    }
+  } else {
+    // Start button released
+    startButtonPressTime = 0;
+  }
+  
+  // Check for select button long press (disconnect and restart advertising)
+  if (buttonState[NES_BUTTON_SELECT]) {
+    // Select button pressed or still being held
+    if (selectButtonPressTime == 0) {
+      // Just pressed, record time
+      selectButtonPressTime = currentTime;
+    } else if (currentTime - selectButtonPressTime >= RECONNECT_HOLD_TIME) {
+      // Held for the required duration, disconnect and start advertising
+      Serial.println("Select button held for 5 seconds, disconnecting ...");
+      
+      // Only perform the action once when threshold is reached
+      selectButtonPressTime = 0;
+    
+      // If connected, disconnect first
+      if (joystick->getState() == BLEJoystick::DEVICE_CONNECTED) {
+        joystick->disconnect();
+      } else {
+        // Stop any current advertising
+        joystick->stopAdvertising();
+      }
+    }
+  } else {
+    // Select button released
+    selectButtonPressTime = 0;
   }
 }

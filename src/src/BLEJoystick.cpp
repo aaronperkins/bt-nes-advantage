@@ -80,6 +80,7 @@ BLEJoystick::BLEJoystick(std::string deviceName) {
     // Create server
     pServer = NimBLEDevice::createServer();
     pServer->setCallbacks(new ServerCallbacks(this));
+    pServer->advertiseOnDisconnect(false); // Turn off auto-advertising on disconnect
     
     // Create HID device
     pHidDevice = new NimBLEHIDDevice(pServer);
@@ -95,7 +96,7 @@ BLEJoystick::BLEJoystick(std::string deviceName) {
     pHidDevice->startServices();
     
     // Set device information
-    pHidDevice->manufacturer()->setValue("NES Advantage BT");
+    pHidDevice->manufacturer()->setValue("Cajun Panda's Retro Gaming");
     pHidDevice->pnp(0x01, 0x02E5, 0xABCD, 0x0110);
     pHidDevice->hidInfo(0x00, 0x01);
     
@@ -114,6 +115,7 @@ void BLEJoystick::start() {
 void BLEJoystick::stop() {
     if (deviceState != DEVICE_STOPPED) {
         stopAdvertising();
+        disconnect();
         updateDeviceState(DEVICE_STOPPED);
     }
 }
@@ -128,7 +130,6 @@ void BLEJoystick::startAdvertising() {
         pAdvertising->start();
         
         updateDeviceState(DEVICE_ADVERTISING);
-        Serial.println("Started advertising");
     }
 }
 
@@ -137,7 +138,24 @@ void BLEJoystick::stopAdvertising() {
     if (deviceState == DEVICE_ADVERTISING) {
         NimBLEDevice::getAdvertising()->stop();
         updateDeviceState(DEVICE_IDLE);
-        Serial.println("Stopped advertising");
+    }
+}
+
+// Disconnect any active BLE connections
+void BLEJoystick::disconnect() {
+    if (deviceState == DEVICE_CONNECTED && pServer != nullptr) {
+        // First set the state to IDLE to prevent any automatic advertising
+        updateDeviceState(DEVICE_IDLE);
+        
+        // Disconnect all connected clients
+        size_t peersNum = this->pServer->getConnectedCount();
+        for (int i = 0; i < peersNum; i++) {
+            uint16_t connID = this->pServer->getPeerInfo(i).getConnHandle();
+            this->pServer->disconnect(connID);
+        }
+        
+        // Small delay to allow disconnection to complete
+        delay(100);
     }
 }
 
@@ -190,22 +208,17 @@ void BLEJoystick::notifyHIDReport() {
         report[1] = buttons[1];
         report[2] = (hat & 0x0F);
         report[3] = axes[0]; // X axis
-        report[4] = axes[1]; // Y axis - added
+        report[4] = axes[1]; // Y axis
         
         // Debug output in a human-readable format
         Serial.println("=== HID REPORT DEBUG ===");
         
-        // Buttons 1-8 (first byte)
-        Serial.println("Buttons 1-8:");
         for (int i = 0; i < 8; i++) {
             Serial.print("  Button ");
             Serial.print(i + 1);
             Serial.print(": ");
             Serial.println((report[0] & (1 << i)) ? "PRESSED" : "released");
         }
-        
-        // Buttons 9-12 (second byte, first 4 bits)
-        Serial.println("Buttons 9-12:");
         for (int i = 0; i < 4; i++) {
             Serial.print("  Button ");
             Serial.print(i + 9);
@@ -230,8 +243,8 @@ void BLEJoystick::notifyHIDReport() {
         
         // X and Y axes
         Serial.print("X-Axis: ");
-        Serial.println(report[3]);
-        Serial.print("Y-Axis: ");
+        Serial.print(report[3]);
+        Serial.print(" Y-Axis: ");
         Serial.println(report[4]);
         
         // Raw HID report values
@@ -288,10 +301,8 @@ BLEJoystick::ServerCallbacks::ServerCallbacks(BLEJoystick* device) : device(devi
 
 void BLEJoystick::ServerCallbacks::onConnect(NimBLEServer* pServer, ble_gap_conn_desc* desc) {
     device->updateDeviceState(BLEJoystick::DEVICE_CONNECTED);
-    Serial.println("Client connected");
 }
 
 void BLEJoystick::ServerCallbacks::onDisconnect(NimBLEServer* pServer) {
     device->updateDeviceState(BLEJoystick::DEVICE_IDLE);
-    Serial.println("Client disconnected");
 }
