@@ -1,8 +1,10 @@
 {
+    // See http://go.microsoft.com/fwlink/?LinkId=827846
+    // for the documentation about the extensions.json format
     "recommendations": [
-        "ms-python.python",
-        "visualstudioexptteam.vscodeintellicode",
-        "ms-python.vscode-pylance",
-        "paulober.pico-w-go"
+        "platformio.platformio-ide"
+    ],
+    "unwantedRecommendations": [
+        "ms-vscode.cpptools-extension-pack"
     ]
 }
