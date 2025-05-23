@@ -1,5 +1,0 @@
-(fp_lib_table
-  (version 7)
-  (lib (name "bt-nes-advantage")(type "KiCad")(uri "/home/aaron/projects/bt-nes-advantage/pcb/bt-nes-advantage.pretty")(options "")(descr ""))
-  (lib (name "Library")(type "KiCad")(uri "/home/aaron/projects/bt-nes-advantage/pcb/Library.pretty")(options "")(descr ""))
-)

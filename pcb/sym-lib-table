@@ -1,4 +1,0 @@
-(sym_lib_table
-  (version 7)
-  (lib (name "bt-nes-advantage")(type "KiCad")(uri "${KIPRJMOD}/bt-nes-advantage.kicad_sym")(options "")(descr ""))
-)
