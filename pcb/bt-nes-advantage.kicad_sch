@@ -2012,52 +2012,42 @@
 			)
 			(embedded_fonts no)
 		)
-		(symbol "My_Library:PJ-043-SMT-TR"
+		(symbol "My_Library:PJ-040-SMT-TR"
 			(pin_names
-				(offset 0.762)
+				(offset 1.016)
 			)
 			(exclude_from_sim no)
 			(in_bom yes)
 			(on_board yes)
 			(property "Reference" "J"
-				(at 16.51 7.62 0)
+				(at -5.08 5.842 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
+					(justify left bottom)
 				)
 			)
-			(property "Value" "PJ-043-SMT-TR"
-				(at 16.51 5.08 0)
+			(property "Value" "PJ-040-SMT-TR"
+				(at -5.08 -10.16 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
+					(justify left bottom)
 				)
 			)
-			(property "Footprint" "My_Library:PJ043SMTTR"
-				(at 16.51 2.54 0)
+			(property "Footprint" "My_Library:CUI_PJ-040-SMT-TR"
+				(at 0 0 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
+					(justify bottom)
 					(hide yes)
 				)
 			)
-			(property "Datasheet" "https://www.sameskydevices.com/product/resource/supplyframepdf/pj-043-smt-tr.pdf"
-				(at 16.51 0 0)
-				(effects
-					(font
-						(size 1.27 1.27)
-					)
-					(justify left)
-					(hide yes)
-				)
-			)
-			(property "Description" "1.0 x 3.2 mm, 2.0 A, Horizontal, Surface Mount (SMT), Shielded, Dc Power Jack Connector"
+			(property "Datasheet" "https://www.sameskydevices.com/product/resource/pj-040-smt-tr.pdf"
 				(at 0 0 0)
 				(effects
 					(font
@@ -2066,169 +2056,263 @@
 					(hide yes)
 				)
 			)
-			(property "Description_1" "1.0 x 3.2 mm, 2.0 A, Horizontal, Surface Mount (SMT), Shielded, Dc Power Jack Connector"
-				(at 16.51 -2.54 0)
+			(property "Description" ""
+				(at 0 0 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
 					(hide yes)
 				)
 			)
-			(property "Height" "4.77"
-				(at 16.51 -5.08 0)
+			(property "PARTREV" "1.07"
+				(at 0 0 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
+					(justify bottom)
 					(hide yes)
 				)
 			)
-			(property "Mouser Part Number" "490-PJ-043-SMT-TR"
-				(at 16.51 -7.62 0)
+			(property "STANDARD" "Manufacturer Recommendations"
+				(at 0 0 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
+					(justify bottom)
 					(hide yes)
 				)
 			)
-			(property "Mouser Price/Stock" "https://www.mouser.co.uk/ProductDetail/Same-Sky/PJ-043-SMT-TR?qs=WyjlAZoYn504fsXktSvOWQ%3D%3D"
-				(at 16.51 -10.16 0)
+			(property "MAXIMUM_PACKAGE_HEIGHT" "3.00mm"
+				(at 0 0 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
+					(justify bottom)
 					(hide yes)
 				)
 			)
-			(property "Manufacturer_Name" "Same Sky"
-				(at 16.51 -12.7 0)
+			(property "MANUFACTURER" "CUI Devices"
+				(at 0 0 0)
 				(effects
 					(font
 						(size 1.27 1.27)
 					)
-					(justify left)
+					(justify bottom)
 					(hide yes)
 				)
 			)
-			(property "Manufacturer_Part_Number" "PJ-043-SMT-TR"
-				(at 16.51 -15.24 0)
-				(effects
-					(font
-						(size 1.27 1.27)
+			(symbol "PJ-040-SMT-TR_0_0"
+				(rectangle
+					(start -5.08 -7.62)
+					(end 5.08 5.08)
+					(stroke
+						(width 0.254)
+						(type default)
 					)
-					(justify left)
-					(hide yes)
+					(fill
+						(type background)
+					)
 				)
-			)
-			(symbol "PJ-043-SMT-TR_0_0"
+				(polyline
+					(pts
+						(xy -1.905 0) (xy -0.635 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -1.905 -3.81) (xy -1.905 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -1.27 2.54) (xy -1.27 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -0.635 0) (xy -0.635 -3.81)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy -0.635 -3.81) (xy -1.905 -3.81)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 -1.27) (xy 0.635 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.27 -3.81) (xy 0.635 -5.08)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.905 0) (xy 1.27 -1.27)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 1.905 -5.08) (xy 1.27 -3.81)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 5.08 2.54) (xy -1.27 2.54)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 5.08 0) (xy 1.905 0)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
+				(polyline
+					(pts
+						(xy 5.08 -5.08) (xy 1.905 -5.08)
+					)
+					(stroke
+						(width 0.1524)
+						(type default)
+					)
+					(fill
+						(type none)
+					)
+				)
 				(pin passive line
-					(at 0 0 0)
+					(at 10.16 2.54 180)
 					(length 5.08)
-					(name "1"
+					(name "~"
 						(effects
 							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
 							)
 						)
 					)
 					(number "1"
 						(effects
 							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
 							)
 						)
 					)
 				)
 				(pin passive line
-					(at 0 -2.54 0)
+					(at 10.16 0 180)
 					(length 5.08)
-					(name "2"
+					(name "~"
 						(effects
 							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "2"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-				(pin passive line
-					(at 0 -5.08 0)
-					(length 5.08)
-					(name "3"
-						(effects
-							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
 							)
 						)
 					)
 					(number "3"
 						(effects
 							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
 							)
 						)
 					)
 				)
 				(pin passive line
-					(at 20.32 0 180)
+					(at 10.16 -5.08 180)
 					(length 5.08)
-					(name "4"
+					(name "~"
 						(effects
 							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
 							)
 						)
 					)
-					(number "4"
+					(number "2"
 						(effects
 							(font
-								(size 1.27 1.27)
+								(size 1.016 1.016)
 							)
 						)
-					)
-				)
-				(pin passive line
-					(at 20.32 -2.54 180)
-					(length 5.08)
-					(name "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-					(number "5"
-						(effects
-							(font
-								(size 1.27 1.27)
-							)
-						)
-					)
-				)
-			)
-			(symbol "PJ-043-SMT-TR_0_1"
-				(polyline
-					(pts
-						(xy 5.08 2.54) (xy 15.24 2.54) (xy 15.24 -7.62) (xy 5.08 -7.62) (xy 5.08 2.54)
-					)
-					(stroke
-						(width 0.1524)
-						(type solid)
-					)
-					(fill
-						(type none)
 					)
 				)
 			)
@@ -2566,6 +2650,12 @@
 		(uuid "7b1d7f19-3177-43dd-8748-a928869bcc23")
 	)
 	(junction
+		(at 36.83 35.56)
+		(diameter 0)
+		(color 0 0 0 0)
+		(uuid "89622f35-cc74-4ea4-bc90-5eae71e787ed")
+	)
+	(junction
 		(at 80.01 80.01)
 		(diameter 0)
 		(color 0 0 0 0)
@@ -2596,16 +2686,6 @@
 			(type default)
 		)
 		(uuid "05bfc586-d8fd-47a3-8110-8ce0491f8903")
-	)
-	(wire
-		(pts
-			(xy 34.29 33.02) (xy 40.64 33.02)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "11d485b9-4b02-4e64-8872-ed326b8f76bb")
 	)
 	(wire
 		(pts
@@ -2729,16 +2809,6 @@
 	)
 	(wire
 		(pts
-			(xy 40.64 35.56) (xy 39.37 35.56)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "3c654c1e-d054-4424-95b1-cebbf7143b35")
-	)
-	(wire
-		(pts
 			(xy 80.01 33.02) (xy 82.55 33.02)
 		)
 		(stroke
@@ -2809,16 +2879,6 @@
 	)
 	(wire
 		(pts
-			(xy 39.37 35.56) (xy 39.37 44.45)
-		)
-		(stroke
-			(width 0)
-			(type default)
-		)
-		(uuid "69ef16f1-dcdf-47db-913d-d78d093ffd64")
-	)
-	(wire
-		(pts
 			(xy 36.83 80.01) (xy 67.31 80.01)
 		)
 		(stroke
@@ -2876,6 +2936,16 @@
 			(type default)
 		)
 		(uuid "7a67741d-edd6-45b1-84ce-f90f0c37bad3")
+	)
+	(wire
+		(pts
+			(xy 36.83 35.56) (xy 41.91 35.56)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "7a6d6cbb-82fb-472b-801d-f3a750807115")
 	)
 	(wire
 		(pts
@@ -3219,22 +3289,22 @@
 	)
 	(global_label "VBUS_5V"
 		(shape output)
-		(at 34.29 33.02 180)
+		(at 44.45 35.56 0)
 		(fields_autoplaced yes)
 		(effects
 			(font
 				(size 1.27 1.27)
 			)
-			(justify right)
+			(justify left)
 		)
 		(uuid "24b16b0c-8eb5-43f3-9232-6be1ad91067b")
 		(property "Intersheetrefs" "${INTERSHEET_REFS}"
-			(at 23.1405 33.02 0)
+			(at 55.5995 35.56 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify right)
+				(justify left)
 				(hide yes)
 			)
 		)
@@ -4310,53 +4380,53 @@
 		)
 	)
 	(symbol
-		(lib_id "My_Library:PJ-043-SMT-TR")
-		(at 40.64 33.02 0)
+		(lib_id "My_Library:PJ-040-SMT-TR")
+		(at 41.91 25.4 270)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
 		(on_board yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "3cd97b8e-d86b-4475-9267-1b378f085609")
 		(property "Reference" "J1"
-			(at 50.8 25.4 0)
+			(at 33.02 15.494 90)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
+				(justify left)
 			)
 		)
 		(property "Value" "PJ-043-SMT-TR"
-			(at 50.8 27.94 0)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Footprint" "My_Library:PJ043SMTTR"
-			(at 57.15 30.48 0)
+			(at 33.02 18.034 90)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
 				(justify left)
+			)
+		)
+		(property "Footprint" "My_Library:CUI_PJ-040-SMT-TR"
+			(at 41.91 25.4 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
 				(hide yes)
 			)
 		)
-		(property "Datasheet" "https://www.sameskydevices.com/product/resource/supplyframepdf/pj-043-smt-tr.pdf"
-			(at 57.15 33.02 0)
+		(property "Datasheet" "https://www.sameskydevices.com/product/resource/pj-040-smt-tr.pdf"
+			(at 41.91 25.4 0)
 			(effects
 				(font
 					(size 1.27 1.27)
 				)
-				(justify left)
 				(hide yes)
 			)
 		)
 		(property "Description" "1.0 x 3.2 mm, 2.0 A, Horizontal, Surface Mount (SMT), Shielded, Dc Power Jack Connector"
-			(at 40.64 33.02 0)
+			(at 41.91 25.4 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4365,7 +4435,7 @@
 			)
 		)
 		(property "Description_1" "1.0 x 3.2 mm, 2.0 A, Horizontal, Surface Mount (SMT), Shielded, Dc Power Jack Connector"
-			(at 57.15 35.56 0)
+			(at 39.37 41.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4375,7 +4445,7 @@
 			)
 		)
 		(property "Height" "4.77"
-			(at 57.15 38.1 0)
+			(at 36.83 41.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4385,7 +4455,7 @@
 			)
 		)
 		(property "Mouser Part Number" "490-PJ-043-SMT-TR"
-			(at 57.15 40.64 0)
+			(at 34.29 41.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4395,7 +4465,7 @@
 			)
 		)
 		(property "Mouser Price/Stock" "https://www.mouser.co.uk/ProductDetail/Same-Sky/PJ-043-SMT-TR?qs=WyjlAZoYn504fsXktSvOWQ%3D%3D"
-			(at 57.15 43.18 0)
+			(at 31.75 41.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4405,7 +4475,7 @@
 			)
 		)
 		(property "Manufacturer_Name" "Same Sky"
-			(at 57.15 45.72 0)
+			(at 29.21 41.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4415,7 +4485,7 @@
 			)
 		)
 		(property "Manufacturer_Part_Number" "PJ-043-SMT-TR"
-			(at 57.15 48.26 0)
+			(at 26.67 41.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -4424,14 +4494,48 @@
 				(hide yes)
 			)
 		)
+		(property "PARTREV" "1.07"
+			(at 41.91 25.4 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "STANDARD" "Manufacturer Recommendations"
+			(at 41.91 25.4 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MAXIMUM_PACKAGE_HEIGHT" "3.00mm"
+			(at 41.91 25.4 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
+		(property "MANUFACTURER" "CUI Devices"
+			(at 41.91 25.4 0)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify bottom)
+				(hide yes)
+			)
+		)
 		(pin "3"
 			(uuid "9585cef7-f9de-42ce-bcea-a5a9de44fc94")
-		)
-		(pin "4"
-			(uuid "dcbe8cd6-846c-4b24-867b-256a6f931164")
-		)
-		(pin "5"
-			(uuid "8a084ccc-92ad-4875-9cb1-3a39b7bbc113")
 		)
 		(pin "2"
 			(uuid "aed1ca94-cbff-401b-aab7-f05dc2237454")
@@ -4722,7 +4826,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "72917caa-e25b-45dc-b7a7-fb7d2222688f")
-		(property "Reference" "U4"
+		(property "Reference" "U3"
 			(at 218.44 50.8 0)
 			(effects
 				(font
@@ -4937,7 +5041,7 @@
 		(instances
 			(project ""
 				(path "/65a65c21-f7b5-417f-8913-03f557b05873"
-					(reference "U4")
+					(reference "U3")
 					(unit 1)
 				)
 			)
@@ -4953,7 +5057,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "7f2cec5a-b83b-4187-b93d-53801e397c3c")
-		(property "Reference" "U5"
+		(property "Reference" "U2"
 			(at 100.33 25.4 0)
 			(effects
 				(font
@@ -5014,7 +5118,7 @@
 		(instances
 			(project ""
 				(path "/65a65c21-f7b5-417f-8913-03f557b05873"
-					(reference "U5")
+					(reference "U2")
 					(unit 1)
 				)
 			)
@@ -5461,7 +5565,7 @@
 	)
 	(symbol
 		(lib_id "power:GND")
-		(at 39.37 44.45 0)
+		(at 36.83 35.56 0)
 		(unit 1)
 		(exclude_from_sim no)
 		(in_bom yes)
@@ -5470,7 +5574,7 @@
 		(fields_autoplaced yes)
 		(uuid "a08c66db-e5a6-4e99-9a41-b3b36f312416")
 		(property "Reference" "#PWR07"
-			(at 39.37 50.8 0)
+			(at 36.83 41.91 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5479,7 +5583,7 @@
 			)
 		)
 		(property "Value" "GND"
-			(at 39.37 49.53 0)
+			(at 36.83 40.64 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5487,7 +5591,7 @@
 			)
 		)
 		(property "Footprint" ""
-			(at 39.37 44.45 0)
+			(at 36.83 35.56 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5496,7 +5600,7 @@
 			)
 		)
 		(property "Datasheet" ""
-			(at 39.37 44.45 0)
+			(at 36.83 35.56 0)
 			(effects
 				(font
 					(size 1.27 1.27)
@@ -5505,7 +5609,7 @@
 			)
 		)
 		(property "Description" "Power symbol creates a global label with name \"GND\" , ground"
-			(at 39.37 44.45 0)
+			(at 36.83 35.56 0)
 			(effects
 				(font
 					(size 1.27 1.27)
