@@ -20,12 +20,17 @@
 
 // --- Battery ADC ---
 #define BATTERY_PIN 0
-#define POWER_KEY_PIN 1
-#define CONNECT_LED_PIN 8
+#define BATTERY_VOLTAGE_DIVIDER_R1 100000  // 100k ohm
+#define BATTERY_VOLTAGE_DIVIDER_R2 100000  // 100k ohm
+#define RED_LED_PIN 7
+#define BLUE_LED_PIN 8
+#define GREEN_LED_PIN 9
+#define BATTERY_CHARGE_PIN 10
+#define BATTERY_STANDBY_PIN 20
 
 // NES Pin Mapping
-#define CLK_PIN 2
-#define LATCH_PIN 3
+#define CLK_PIN 3
+#define LATCH_PIN 2
 #define DATA_PIN 4
 
 // Button mapping (NES to HID bit positions)
@@ -57,11 +62,8 @@ const unsigned long RECONNECT_HOLD_TIME = 5000; // 5 seconds
 // Function prototypes
 void joystickStateCallback();
 int readBatteryLevel();
-void readNESController();
-void powerOn();
-void powerOff();
-void connectionLightOn();
-void connectionLightOff();
+bool readNESController();
+void sleep();
 void checkTimers();
 
 void setup() {
@@ -70,15 +72,15 @@ void setup() {
   Serial.println("NES Advantage BLE Controller starting...");
   
   // Configure pins
-  pinMode(POWER_KEY_PIN, OUTPUT);
-  pinMode(CONNECT_LED_PIN, OUTPUT);
+  pinMode(RED_LED_PIN, OUTPUT);
+  pinMode(GREEN_LED_PIN, OUTPUT);
+  pinMode(BLUE_LED_PIN, OUTPUT);
   pinMode(CLK_PIN, OUTPUT);
   pinMode(LATCH_PIN, OUTPUT);
   pinMode(DATA_PIN, INPUT_PULLUP);
-  
-  // Turn power on
-  powerOn();
-  
+  pinMode(BATTERY_CHARGE_PIN, INPUT_PULLUP);
+  pinMode(BATTERY_STANDBY_PIN, INPUT_PULLUP);
+
   // Initialize the joystick
   joystick = new BLEJoystick("NES Advantage");
   joystick->setStateChangeCallback(joystickStateCallback);
@@ -91,21 +93,14 @@ void setup() {
   // Initial battery reading
   batteryLevel = readBatteryLevel();
   prevBatteryLevel = batteryLevel;
+
+  esp_sleep_enable_timer_wakeup(100000);
 }
 
 void loop() {
   // Read controller state
-  readNESController();
-  
-  // Check if state has changed
-  bool stateChanged = false;
-  for (int i = 0; i < 8; i++) {
-    if (buttonState[i] != prevButtonState[i]) {
-      stateChanged = true;
-      prevButtonState[i] = buttonState[i];
-    }
-  }
-  
+  bool stateChanged = readNESController();
+ 
   // Update joystick if state changed
   if (stateChanged) {
     Serial.print("NES state change: ");
@@ -161,18 +156,20 @@ void loop() {
     }
   }
   
-  // Check battery level periodically
+  // Check battery level and charging status periodically
   static unsigned long lastBatteryCheck = 0;
   if (millis() - lastBatteryCheck > 5000) {  // Check every 5 seconds
+    // Update battery level
     batteryLevel = readBatteryLevel();
     if (batteryLevel != prevBatteryLevel && joystick->getState() == BLEJoystick::DEVICE_CONNECTED) {
       prevBatteryLevel = batteryLevel;
       joystick->setBatteryLevel(batteryLevel);
       joystick->notifyBatteryLevel();
     }
+    
     lastBatteryCheck = millis();
   }
-  
+    
   // Check timers for idle and advertising timeouts
   checkTimers();
   
@@ -184,7 +181,7 @@ void joystickStateCallback() {
   switch (joystick->getState()) {
     case BLEJoystick::DEVICE_IDLE:
       Serial.println("Device idle.");
-      connectionLightOff();
+      digitalWrite(BLUE_LED_PIN, HIGH);
       lastActivityTime = millis();
       break;
       
@@ -195,7 +192,7 @@ void joystickStateCallback() {
       
     case BLEJoystick::DEVICE_CONNECTED:
       Serial.println("Device connected.");
-      connectionLightOn();
+      digitalWrite(BLUE_LED_PIN, LOW);
       lastActivityTime = millis();
       // Send initial battery level
       joystick->setBatteryLevel(batteryLevel);
@@ -209,12 +206,14 @@ void joystickStateCallback() {
 
 int readBatteryLevel() {
   int raw = analogRead(BATTERY_PIN);
-  float voltage = (raw / 4095.0) * 3.3;  // ESP32 has 12-bit ADC
-  int percentage = min(100, static_cast<int>((voltage / 3.0) * 100));
+  float voltage = (raw / 4095.0) * 3.3; 
+  voltage = (voltage * (BATTERY_VOLTAGE_DIVIDER_R1 + BATTERY_VOLTAGE_DIVIDER_R2)) / BATTERY_VOLTAGE_DIVIDER_R2;
+  voltage -= 0.35; // Fudge factor
+  int percentage = map((int)(voltage * 100), 300, 420, 0, 100);
   return percentage;
 }
 
-void readNESController() {
+bool readNESController() {
   // Latch current button states
   digitalWrite(LATCH_PIN, HIGH);
   delayMicroseconds(12);  // Latch pulse (min 12µs)
@@ -231,46 +230,79 @@ void readNESController() {
     digitalWrite(CLK_PIN, LOW);
     delayMicroseconds(6);
   }
+
+  // Check if state has changed
+  bool stateChanged = false;
+  for (int i = 0; i < 8; i++) {
+    if (buttonState[i] != prevButtonState[i]) {
+      stateChanged = true;
+      prevButtonState[i] = buttonState[i];
+    }
+  }
+  return stateChanged;
 }
 
-void powerOn() {
-  Serial.println("Powering on ...");
-  digitalWrite(POWER_KEY_PIN, LOW);
-  delay(200);
-  digitalWrite(POWER_KEY_PIN, HIGH);
-}
-
-void powerOff() {
-  Serial.println("Powering off ...");
-  // Sequence to trigger power off
-  digitalWrite(POWER_KEY_PIN, LOW);
-  delay(100);
-  digitalWrite(POWER_KEY_PIN, HIGH);
-  delay(100);
-  digitalWrite(POWER_KEY_PIN, LOW);
-  delay(100);
-  digitalWrite(POWER_KEY_PIN, HIGH);
+void sleep() {
+  Serial.println("Sleeping...");
   
-  // Deep sleep
-  esp_deep_sleep_start();
-}
+  digitalWrite(RED_LED_PIN, HIGH);
+  digitalWrite(GREEN_LED_PIN, HIGH);
+  digitalWrite(BLUE_LED_PIN, HIGH);
+  delay(1000); // Allow time for serial output to complete
 
-void connectionLightOn() {
-  digitalWrite(CONNECT_LED_PIN, LOW);  // Active low
-}
+  bool debounce = false;
+  bool wakeUp = false;
+  while (!wakeUp) {
+    esp_light_sleep_start();
+    delay(100);
+    readNESController();
+    if (!buttonState[NES_BUTTON_START]) {
+      debounce=true;
+    }
+    else {
+      if (debounce) {
+        wakeUp = true;
+      }
+    }
+  }
 
-void connectionLightOff() {
-  digitalWrite(CONNECT_LED_PIN, HIGH); // Active low
+  Serial.println("Waking up...");
+  startButtonPressTime = 0;
+  lastActivityTime = 0;
+  Serial.println("Start advertising ...");
+  joystick->startAdvertising();
+  advertisingStartTime = millis();
 }
 
 void checkTimers() {
   unsigned long currentTime = millis();
   
+  // Check battery charging status and update GREEN LED
+  bool isCharging = digitalRead(BATTERY_CHARGE_PIN) == LOW;
+  bool isFullyCharged = digitalRead(BATTERY_STANDBY_PIN) == LOW;
+  if (isCharging && !isFullyCharged) {
+    // Blinking green LED when charging (toggle every 500ms)
+    digitalWrite(GREEN_LED_PIN, (currentTime / 500) % 2 == 0);
+  } else if (isFullyCharged) {
+    // Solid green LED when fully charged
+    digitalWrite(GREEN_LED_PIN, LOW); // LED is active LOW
+  } else {
+    // No charging activity - LED off
+    digitalWrite(GREEN_LED_PIN, HIGH); // LED is active LOW
+  }
+
+  // Check if battery level is low
+  if (batteryLevel < 20) {
+    digitalWrite(RED_LED_PIN, (currentTime / 500) % 2 == 0);
+  } else {
+    digitalWrite(RED_LED_PIN, HIGH); // Turn off red LED
+  }
+
   // Check if device is idle for too long
   if (joystick->getState() == BLEJoystick::DEVICE_IDLE && 
       currentTime - lastActivityTime > IDLE_TIMEOUT) {
     Serial.println("Device idle for too long, going to sleep...");
-    powerOff();
+    sleep();
   }
   
   // Check if device is advertising for too long
@@ -278,22 +310,22 @@ void checkTimers() {
       currentTime - advertisingStartTime > ADVERTISING_TIMEOUT) {
     Serial.println("Device advertising for too long, stopping...");
     joystick->stopAdvertising();
-    connectionLightOff();
+    digitalWrite(BLUE_LED_PIN, HIGH);
   } else if (joystick->getState() == BLEJoystick::DEVICE_ADVERTISING) {
     // Blink LED while advertising
-    digitalWrite(CONNECT_LED_PIN, (currentTime / 500) % 2 == 0);
+    digitalWrite(BLUE_LED_PIN, (currentTime / 500) % 2 == 0);
   }
 
- // Check for start button long press (power off)
+ // Check for start button long press (sleep)
   if (buttonState[NES_BUTTON_START]) {
     // Start button pressed or still being held
     if (startButtonPressTime == 0) {
       // Just pressed, record time
       startButtonPressTime = currentTime;
     } else if (currentTime - startButtonPressTime >= POWER_OFF_HOLD_TIME) {
-      // Held for the required duration, power off
-      Serial.println("Start button held for 5 seconds, powering off...");
-      powerOff();
+      // Held for the required duration, sleep
+      Serial.println("Start button held for 5 seconds, entering sleep mode ...");
+      sleep();
     }
   } else {
     // Start button released
