@@ -17,7 +17,7 @@ The BT-NES-Advantage is a custom Bluetooth adapter built into the NES Advantage 
 ## Usage Instructions
 
 ### Pairing the Controller
-1. **Turn on the controller** - The controller will automatically wake up when any button is pressed.
+1. **Turn on the controller** - The controller will automatically wake up when the Start button is held.
 2. **Enter pairing mode** - The controller will automatically enter pairing mode when turned on, indicated by a blinking blue LED.
 3. **Pair with your device** - On your device (computer, smartphone, game console, etc.), go to Bluetooth settings and select "NES Advantage" from the list of available devices.
 4. **Connection successful** - When successfully connected, the blue LED will turn solid.
