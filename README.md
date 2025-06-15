@@ -53,6 +53,9 @@ The NES Advantage controller buttons are mapped to standard gamepad controls:
 - The controller will automatically enter sleep mode after 5 minutes of inactivity to conserve power.
 - When advertising (pairing mode), the controller will stop advertising after 30 seconds to save battery.
 
+![Controller Charging](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/charging.jpg)
+*NES Advantage controller charging via 5V DC barrel jack*
+
 ### Troubleshooting
 - If unable to pair with a new device, ensure the controller is in pairing mode (blue LED blinking).
 - For persistent issues, try charging the controller fully before use.
@@ -135,10 +138,23 @@ For issues, questions, or contributions, please visit the project repository.
 5. **Controller Connections**
    - Connect the PCB to the NES Advantage controller using the 8-pin JST XH connector (J2)
    - Pinout from left to right: DATA_P1, LATCH, CLK_P1, DATA_P2, CLK_P2, N/C, +5V, GND
-
-
+    6. **Pin Mapping**
+        - Refer to this pin mapping diagram for connecting the PCB to the NES Advantage controller:
+        
+        ![NES Advantage Pin Mapping](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/pin_mapping.jpg)
+        
 7. **Installation in Controller**
-
+    - Carefully open the NES Advantage controller by removing the screws from the bottom
+    - Place the PCB in the controller as shown below:
+    
+    ![PCB Placement](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/board%20placement.jpg)
+    
+    - Install the battery in the recommended position:
+    
+    ![Battery Placement](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/battery_placement.jpg)
+    
+    - Route wires to avoid interference with moving parts of the joystick
+    - Ensure the RGB LED is visible or positioned near an existing hole
 
 ### PCB Layout Notes
 
@@ -146,4 +162,125 @@ For issues, questions, or contributions, please visit the project repository.
 - Battery placement should avoid contact with moving parts of the joystick
 - DC jack should be accessible through a hole in the case
 - RGB LED should be positioned to be visible from outside the controller
+
+## Firmware Instructions
+
+### Prerequisites
+- [PlatformIO](https://platformio.org/install) (recommended) or Arduino IDE
+- USB cable for connecting to the ESP32-C3 SuperMini module
+- Required libraries:
+  - NimBLE-Arduino (v1.4.1 or later)
+  - Adafruit GFX Library (v1.11.3 or later)
+
+### Building the Firmware with PlatformIO
+
+1. **Install PlatformIO**
+   - Install PlatformIO IDE as an extension for VSCode
+   - Or install the PlatformIO Core CLI
+
+2. **Clone the Repository**
+   ```bash
+   git clone https://github.com/aaronperkins/bt-nes-advantage.git
+   cd bt-nes-advantage
+   ```
+
+3. **Open the Project in PlatformIO**
+   - In VSCode with PlatformIO extension, select "Open Project" and choose the `src` folder
+   - Or from the command line:
+     ```bash
+     cd src
+     pio project init
+     ```
+
+4. **Configure the Project**
+   - The `platformio.ini` file is already configured with the correct settings:
+     ```ini
+     [env:lolin_c3_mini]
+     platform = espressif32
+     board = lolin_c3_mini
+     framework = arduino
+     lib_deps =
+         h2zero/NimBLE-Arduino@^1.4.1
+         adafruit/Adafruit GFX Library@^1.11.3
+     ```
+
+5. **Build the Project**
+   - In PlatformIO IDE, click on the "Build" button
+   - Or from the command line:
+     ```bash
+     pio run
+     ```
+
+### Uploading the Firmware
+
+1. **Connect the ESP32-C3 SuperMini**
+   - Connect the ESP32-C3 SuperMini module to your computer via USB
+   - If you've already installed it in the controller, you'll need to either:
+     - Connect to the USB port on the module (if accessible)
+     - Or temporarily remove the module from the PCB for programming
+
+2. **Upload the Firmware**
+   - In PlatformIO IDE, click on the "Upload" button
+   - Or from the command line:
+     ```bash
+     pio run -t upload
+     ```
+
+3. **Monitor Serial Output (Optional)**
+   - For debugging, you can monitor the serial output at 9600 baud
+   - In PlatformIO IDE, click on the "Serial Monitor" button
+   - Or from the command line:
+     ```bash
+     pio device monitor -b 9600
+     ```
+
+### Building with Arduino IDE (Alternative)
+
+1. **Install Arduino IDE**
+   - Download and install the latest Arduino IDE from [arduino.cc](https://www.arduino.cc/en/software)
+
+2. **Install ESP32 Board Support**
+   - Open Arduino IDE
+   - Go to File > Preferences
+   - Add the following URL to the "Additional Board Manager URLs" field:
+     ```
+     https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
+     ```
+   - Go to Tools > Board > Boards Manager
+   - Search for "esp32" and install the "ESP32 by Espressif Systems"
+
+3. **Install Required Libraries**
+   - Go to Sketch > Include Library > Manage Libraries
+   - Search for and install:
+     - "NimBLE-Arduino" by h2zero
+     - "Adafruit GFX Library" by Adafruit
+
+4. **Open the Project**
+   - Copy the contents from:
+     - `src/src/main.cpp` to a new sketch
+     - `src/src/BLEJoystick.cpp` and `src/include/BLEJoystick.h` to your Arduino libraries folder
+
+5. **Configure Board Settings**
+   - Select Tools > Board > ESP32 Arduino > LOLIN C3 Mini
+
+6. **Upload the Sketch**
+   - Click the Upload button
+
+### Testing After Upload
+
+1. **Basic Functionality Test**
+   - After uploading the firmware, the controller will automatically enter pairing mode
+   - The blue LED should start blinking
+   - Use a Bluetooth device to test pairing and button functionality
+
+2. **Troubleshooting Upload Issues**
+   - If you can't upload, ensure you're in upload mode by holding the BOOT button while connecting USB
+   - Check that the correct port is selected in the IDE
+   - Verify your USB cable is a data cable, not just a charging cable
+
+3. **Firmware Configuration Options**
+   - You can customize the controller behavior by modifying these parameters in `main.cpp`:
+     - `SLEEP_TIMEOUT`: Time before sleep mode activates from inactivity
+     - `BATTERY_VOLTAGE_CALIBRATION_FACTOR`: Adjust if battery level reading is incorrect
+     - Device name: Change `"NES Advantage"` in the constructor if desired
 
