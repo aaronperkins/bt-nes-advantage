@@ -1,6 +1,8 @@
 # bt-nes-advantage
 Integrated Bluetooth adapter for the NES Advantage (NES-026)
 
+![BT-NES-Advantage Hero Shot](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/main.jpg)
+
 ## Overview
 The BT-NES-Advantage is a custom Bluetooth adapter built into the NES Advantage controller, allowing it to connect wirelessly to modern devices as a standard Bluetooth gamepad. This project uses an ESP32-C3 microcontroller to read the NES controller's inputs and transmit them via Bluetooth HID protocol.
 
