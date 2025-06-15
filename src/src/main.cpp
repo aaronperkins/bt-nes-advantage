@@ -20,8 +20,11 @@
 
 // --- Battery ADC ---
 #define BATTERY_PIN 0
-#define BATTERY_VOLTAGE_DIVIDER_R1 100000  // 100k ohm
-#define BATTERY_VOLTAGE_DIVIDER_R2 100000  // 100k ohm
+#define BATTERY_VOLTAGE_DIVIDER_R1 100000         // 100k ohm (nominal)
+#define BATTERY_VOLTAGE_DIVIDER_R2 100000         // 100k ohm (nominal)
+#define BATTERY_VOLTAGE_CALIBRATION_FACTOR 0.928  // Adjust this factor for calibration
+#define BATTERY_MIN_VOLTAGE 3.00                  // Minimum battery voltage (in volts)
+#define BATTERY_MAX_VOLTAGE 4.20                  // Maximum battery voltage (in volts)
 #define RED_LED_PIN 7
 #define BLUE_LED_PIN 8
 #define GREEN_LED_PIN 9
@@ -29,11 +32,13 @@
 #define BATTERY_STANDBY_PIN 20
 
 // NES Pin Mapping
-#define CLK_PIN 3
+#define CLK_PIN_P1 3
+#define CLK_PIN_P2 5
 #define LATCH_PIN 2
-#define DATA_PIN 4
+#define DATA_PIN_P1 4
+#define DATA_PIN_P2 6
 
-// Button mapping (NES to HID bit positions)
+// Button mapping (NES polling order)
 #define NES_BUTTON_A 0
 #define NES_BUTTON_B 1
 #define NES_BUTTON_SELECT 2
@@ -43,58 +48,84 @@
 #define NES_BUTTON_LEFT 6
 #define NES_BUTTON_RIGHT 7
 
-#define IDLE_TIMEOUT 60000  // milliseconds
-#define ADVERTISING_TIMEOUT 30000  // milliseconds
+#define SLEEP_TIMEOUT 5000000           // microseconds
+#define CONNECTION_IDLE_TIMEOUT 60000   // milliseconds
+#define IDLE_TIMEOUT 300000             // milliseconds
+#define ADVERTISING_TIMEOUT 30000       // milliseconds
+#define POWER_OFF_HOLD_TIME 5000        // milliseconds
+#define RECONNECT_HOLD_TIME 5000        // milliseconds
 
-// Global objects
+// Global state
 BLEJoystick* joystick;
 bool buttonState[8] = {false};
 bool prevButtonState[8] = {false};
+unsigned int batteryLevel = 0;
+float batteryVoltage = 0.0;
+unsigned int prevBatteryLevel = 0;
+unsigned long idleStartTime = 0;
 unsigned long lastActivityTime = 0;
 unsigned long advertisingStartTime = 0;
-int batteryLevel = 0;
-int prevBatteryLevel = 0;
+unsigned long lastBatteryCheck = 0;
 unsigned long startButtonPressTime = 0;
 unsigned long selectButtonPressTime = 0;
-const unsigned long POWER_OFF_HOLD_TIME = 5000; // 5 seconds
-const unsigned long RECONNECT_HOLD_TIME = 5000; // 5 seconds
+RTC_DATA_ATTR bool sleeping = false;
 
 // Function prototypes
 void joystickStateCallback();
 int readBatteryLevel();
 bool readNESController();
-void sleep();
 void checkTimers();
+void enterSleepMode();
 
 void setup() {
-  // Initialize serial for debugging
-  Serial.begin(115200);
-  Serial.println("NES Advantage BLE Controller starting...");
-  
-  // Configure pins
+  // Configure NES controller pins
+  // We need these pins to wake from sleep
+  pinMode(CLK_PIN_P1, OUTPUT);
+  pinMode(CLK_PIN_P2, OUTPUT);
+  pinMode(LATCH_PIN, OUTPUT);
+  pinMode(DATA_PIN_P1, INPUT_PULLUP);
+  pinMode(DATA_PIN_P2, INPUT_PULLUP);
+
+  // If sleeping, keep sleeping until the start button is held
+  if (sleeping) {
+    readNESController();
+    if (!buttonState[NES_BUTTON_START]) {
+      enterSleepMode();
+    }
+    else {
+      sleeping = false;
+    }
+  }
+
+  // Configure other pins
   pinMode(RED_LED_PIN, OUTPUT);
   pinMode(GREEN_LED_PIN, OUTPUT);
   pinMode(BLUE_LED_PIN, OUTPUT);
-  pinMode(CLK_PIN, OUTPUT);
-  pinMode(LATCH_PIN, OUTPUT);
-  pinMode(DATA_PIN, INPUT_PULLUP);
   pinMode(BATTERY_CHARGE_PIN, INPUT_PULLUP);
   pinMode(BATTERY_STANDBY_PIN, INPUT_PULLUP);
 
-  // Initialize the joystick
-  joystick = new BLEJoystick("NES Advantage");
+  // Set initial pin states
+  digitalWrite(RED_LED_PIN, HIGH);
+  digitalWrite(GREEN_LED_PIN, HIGH);
+  digitalWrite(BLUE_LED_PIN, HIGH);
+
+  // Initialize serial for debugging
+  Serial.begin(9600);
+    
+  // Initialize timers
+  idleStartTime = millis();
+  lastActivityTime = millis();
+  advertisingStartTime = millis();
+  lastBatteryCheck = millis();
+
+  // Update battery level
+  batteryLevel = readBatteryLevel();
+
+  // Initialize the joystick and begin advertising
+  joystick = new BLEJoystick("NES Advantage", "Cajun Panda's Retro Gaming");
   joystick->setStateChangeCallback(joystickStateCallback);
-  
-  // Start the joystick
   joystick->start();
   joystick->startAdvertising();
-  advertisingStartTime = millis();
-  
-  // Initial battery reading
-  batteryLevel = readBatteryLevel();
-  prevBatteryLevel = batteryLevel;
-
-  esp_sleep_enable_timer_wakeup(100000);
 }
 
 void loop() {
@@ -135,46 +166,29 @@ void loop() {
     int8_t x = buttonState[NES_BUTTON_RIGHT] ? 127 : (buttonState[NES_BUTTON_LEFT] ? -127 : 0);
     int8_t y = buttonState[NES_BUTTON_DOWN] ? 127 : (buttonState[NES_BUTTON_UP] ? -127 : 0);
     
+    // If connected, update joystick state
     if (joystick->getState() == BLEJoystick::DEVICE_CONNECTED) {
       joystick->setHat(dpadDirection);
+      joystick->setAxes(x, y, 0, 0, 0, 0, 0, 0); // Set axes values
       joystick->setButtons(
-        buttonState[NES_BUTTON_A],  // A button
-        buttonState[NES_BUTTON_B],  // B button
-        false, false,               // buttons 3-4
-        false, false,               // buttons 5-6
-        false, false,               // buttons 7-8
-        false, false,               // buttons 9-10
-        buttonState[NES_BUTTON_SELECT],  // Select button
-        buttonState[NES_BUTTON_START]    // Start button
+        buttonState[NES_BUTTON_A], false,   // buttons 1-2
+        false, buttonState[NES_BUTTON_B],   // buttons 3-4
+        false, false,                       // buttons 5-6
+        false, false,                       // buttons 7-8
+        false, false,                       // buttons 9-10
+        buttonState[NES_BUTTON_SELECT],     // Select button
+        buttonState[NES_BUTTON_START]       // Start button
       );
       joystick->notifyHIDReport();
       lastActivityTime = millis();
-    } else if (joystick->getState() == BLEJoystick::DEVICE_IDLE && selectButtonPressTime == 0) {
-      Serial.println("Start advertising ...");
+    // else begin advertising
+    } else if (joystick->getState() == BLEJoystick::DEVICE_IDLE 
+                && selectButtonPressTime == 0) {
       joystick->startAdvertising();
-      advertisingStartTime = millis();
     }
   }
-  
-  // Check battery level and charging status periodically
-  static unsigned long lastBatteryCheck = 0;
-  if (millis() - lastBatteryCheck > 5000) {  // Check every 5 seconds
-    // Update battery level
-    batteryLevel = readBatteryLevel();
-    if (batteryLevel != prevBatteryLevel && joystick->getState() == BLEJoystick::DEVICE_CONNECTED) {
-      prevBatteryLevel = batteryLevel;
-      joystick->setBatteryLevel(batteryLevel);
-      joystick->notifyBatteryLevel();
-    }
-    
-    lastBatteryCheck = millis();
-  }
-    
-  // Check timers for idle and advertising timeouts
+      
   checkTimers();
-  
-  // Short delay to prevent CPU hogging
-  delay(10);
 }
 
 void joystickStateCallback() {
@@ -182,7 +196,7 @@ void joystickStateCallback() {
     case BLEJoystick::DEVICE_IDLE:
       Serial.println("Device idle.");
       digitalWrite(BLUE_LED_PIN, HIGH);
-      lastActivityTime = millis();
+      idleStartTime = millis();
       break;
       
     case BLEJoystick::DEVICE_ADVERTISING:
@@ -193,7 +207,6 @@ void joystickStateCallback() {
     case BLEJoystick::DEVICE_CONNECTED:
       Serial.println("Device connected.");
       digitalWrite(BLUE_LED_PIN, LOW);
-      lastActivityTime = millis();
       // Send initial battery level
       joystick->setBatteryLevel(batteryLevel);
       joystick->notifyBatteryLevel();
@@ -204,79 +217,34 @@ void joystickStateCallback() {
   }
 }
 
-int readBatteryLevel() {
-  int raw = analogRead(BATTERY_PIN);
-  float voltage = (raw / 4095.0) * 3.3; 
-  voltage = (voltage * (BATTERY_VOLTAGE_DIVIDER_R1 + BATTERY_VOLTAGE_DIVIDER_R2)) / BATTERY_VOLTAGE_DIVIDER_R2;
-  voltage -= 0.35; // Fudge factor
-  int percentage = map((int)(voltage * 100), 300, 420, 0, 100);
-  return percentage;
-}
-
-bool readNESController() {
-  // Latch current button states
-  digitalWrite(LATCH_PIN, HIGH);
-  delayMicroseconds(12);  // Latch pulse (min 12µs)
-  digitalWrite(LATCH_PIN, LOW);
-  
-  // Read all 8 buttons
-  for (int i = 0; i < 8; i++) {
-    // NES buttons are active low, so invert the reading
-    buttonState[i] = !digitalRead(DATA_PIN);
-    
-    // Clock pulse
-    digitalWrite(CLK_PIN, HIGH);
-    delayMicroseconds(6);
-    digitalWrite(CLK_PIN, LOW);
-    delayMicroseconds(6);
-  }
-
-  // Check if state has changed
-  bool stateChanged = false;
-  for (int i = 0; i < 8; i++) {
-    if (buttonState[i] != prevButtonState[i]) {
-      stateChanged = true;
-      prevButtonState[i] = buttonState[i];
-    }
-  }
-  return stateChanged;
-}
-
-void sleep() {
-  Serial.println("Sleeping...");
-  
-  digitalWrite(RED_LED_PIN, HIGH);
-  digitalWrite(GREEN_LED_PIN, HIGH);
-  digitalWrite(BLUE_LED_PIN, HIGH);
-  delay(1000); // Allow time for serial output to complete
-
-  bool debounce = false;
-  bool wakeUp = false;
-  while (!wakeUp) {
-    esp_light_sleep_start();
-    delay(100);
-    readNESController();
-    if (!buttonState[NES_BUTTON_START]) {
-      debounce=true;
-    }
-    else {
-      if (debounce) {
-        wakeUp = true;
-      }
-    }
-  }
-
-  Serial.println("Waking up...");
-  startButtonPressTime = 0;
-  lastActivityTime = 0;
-  Serial.println("Start advertising ...");
-  joystick->startAdvertising();
-  advertisingStartTime = millis();
-}
-
 void checkTimers() {
   unsigned long currentTime = millis();
   
+  // Check battery level periodically
+  if (currentTime - lastBatteryCheck > 5000) {
+    // Update battery level
+    batteryLevel = readBatteryLevel();
+    if (batteryLevel != prevBatteryLevel) {
+      Serial.print("Battery level: ");
+      Serial.print(batteryLevel);
+      Serial.print(" Battery voltage: ");
+      Serial.println(batteryVoltage);
+      prevBatteryLevel = batteryLevel;
+      if (joystick->getState() == BLEJoystick::DEVICE_CONNECTED) {
+        joystick->setBatteryLevel(batteryLevel);
+        joystick->notifyBatteryLevel();
+      }
+    }  
+    lastBatteryCheck = millis();
+  }
+
+  // Check if battery level is low
+  if (batteryLevel < 20) {
+    digitalWrite(RED_LED_PIN, (currentTime / 500) % 2 == 0);
+  } else {
+    digitalWrite(RED_LED_PIN, HIGH); // Turn off red LED
+  }
+
   // Check battery charging status and update GREEN LED
   bool isCharging = digitalRead(BATTERY_CHARGE_PIN) == LOW;
   bool isFullyCharged = digitalRead(BATTERY_STANDBY_PIN) == LOW;
@@ -291,18 +259,17 @@ void checkTimers() {
     digitalWrite(GREEN_LED_PIN, HIGH); // LED is active LOW
   }
 
-  // Check if battery level is low
-  if (batteryLevel < 20) {
-    digitalWrite(RED_LED_PIN, (currentTime / 500) % 2 == 0);
-  } else {
-    digitalWrite(RED_LED_PIN, HIGH); // Turn off red LED
+  // Check for connection inactivity - put device to sleep
+  if (joystick->getState() == BLEJoystick::DEVICE_IDLE && 
+      currentTime - idleStartTime > CONNECTION_IDLE_TIMEOUT) {
+    Serial.println("Connection timeout, going to sleep...");
+    enterSleepMode();
   }
 
-  // Check if device is idle for too long
-  if (joystick->getState() == BLEJoystick::DEVICE_IDLE && 
-      currentTime - lastActivityTime > IDLE_TIMEOUT) {
-    Serial.println("Device idle for too long, going to sleep...");
-    sleep();
+  // Check for inactivity - put device to sleep if no button press 
+  if (currentTime - lastActivityTime > IDLE_TIMEOUT) {
+    Serial.println("No button activity, going to sleep...");
+    enterSleepMode();
   }
   
   // Check if device is advertising for too long
@@ -325,7 +292,7 @@ void checkTimers() {
     } else if (currentTime - startButtonPressTime >= POWER_OFF_HOLD_TIME) {
       // Held for the required duration, sleep
       Serial.println("Start button held for 5 seconds, entering sleep mode ...");
-      sleep();
+      enterSleepMode();
     }
   } else {
     // Start button released
@@ -357,4 +324,62 @@ void checkTimers() {
     // Select button released
     selectButtonPressTime = 0;
   }
+}
+
+int readBatteryLevel() {
+  int raw = analogRead(BATTERY_PIN);
+  batteryVoltage = (raw / 4095.0) * 3.3; 
+  batteryVoltage = (batteryVoltage * (BATTERY_VOLTAGE_DIVIDER_R1 + BATTERY_VOLTAGE_DIVIDER_R2)) / BATTERY_VOLTAGE_DIVIDER_R2;
+  batteryVoltage *= BATTERY_VOLTAGE_CALIBRATION_FACTOR;
+  int percentage = (int)(((batteryVoltage - BATTERY_MIN_VOLTAGE) / (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE)) * 100.0);
+  if (percentage > 100) percentage = 100;
+  if (percentage < 0) percentage = 0;
+  return percentage;
+}
+
+bool readNESController() {
+  // Latch current button states
+  digitalWrite(LATCH_PIN, HIGH);
+  delayMicroseconds(12);  // Latch pulse (min 12µs)
+  digitalWrite(LATCH_PIN, LOW);
+  
+  // Read all 8 buttons
+  for (int i = 0; i < 8; i++) {
+    // NES buttons are active low, so invert the reading
+    buttonState[i] = !digitalRead(DATA_PIN_P1);
+    
+    // Clock pulse
+    digitalWrite(CLK_PIN_P1, HIGH);
+    digitalWrite(CLK_PIN_P2, HIGH);
+    delayMicroseconds(6);
+    digitalWrite(CLK_PIN_P1, LOW);
+    digitalWrite(CLK_PIN_P2, LOW);
+    delayMicroseconds(6);
+  }
+
+  // Check if state has changed
+  bool stateChanged = false;
+  for (int i = 0; i < 8; i++) {
+    if (buttonState[i] != prevButtonState[i]) {
+      stateChanged = true;
+      prevButtonState[i] = buttonState[i];
+    }
+  }
+
+  // Update last activity time if state changed
+  if (stateChanged) {
+    lastActivityTime = millis();
+  }
+
+  return stateChanged;
+}
+
+void enterSleepMode() {
+  Serial.flush();
+  digitalWrite(RED_LED_PIN, HIGH);
+  digitalWrite(GREEN_LED_PIN, HIGH);
+  digitalWrite(BLUE_LED_PIN, HIGH);
+  sleeping = true;
+  esp_sleep_enable_timer_wakeup(SLEEP_TIMEOUT);
+  esp_deep_sleep_start();
 }

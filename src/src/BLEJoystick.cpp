@@ -61,7 +61,7 @@ const uint8_t BLEJoystick::hidReportDescriptor[] = {
 };
 
 // Constructor implementation
-BLEJoystick::BLEJoystick(std::string deviceName) {
+BLEJoystick::BLEJoystick(std::string deviceName, std::string manufacturerName) {
     deviceState = DEVICE_STOPPED;
     batteryLevel = 100;
     
@@ -80,7 +80,7 @@ BLEJoystick::BLEJoystick(std::string deviceName) {
     // Create server
     pServer = NimBLEDevice::createServer();
     pServer->setCallbacks(new ServerCallbacks(this));
-    pServer->advertiseOnDisconnect(false); // Turn off auto-advertising on disconnect
+    pServer->advertiseOnDisconnect(false); // Default to false
     
     // Create HID device
     pHidDevice = new NimBLEHIDDevice(pServer);
@@ -96,7 +96,7 @@ BLEJoystick::BLEJoystick(std::string deviceName) {
     pHidDevice->startServices();
     
     // Set device information
-    pHidDevice->manufacturer()->setValue("Cajun Panda's Retro Gaming");
+    pHidDevice->manufacturer()->setValue(manufacturerName);
     pHidDevice->pnp(0x01, 0x02E5, 0xABCD, 0x0110);
     pHidDevice->hidInfo(0x00, 0x01);
     
@@ -138,6 +138,13 @@ void BLEJoystick::stopAdvertising() {
     if (deviceState == DEVICE_ADVERTISING) {
         NimBLEDevice::getAdvertising()->stop();
         updateDeviceState(DEVICE_IDLE);
+    }
+}
+
+// Set automatic advertising on disconnect
+void BLEJoystick::setAdvertiseOnDisconnect(bool advertise) {
+    if (pServer != nullptr) {
+        pServer->advertiseOnDisconnect(advertise);
     }
 }
 

@@ -20,13 +20,14 @@ public:
     static const uint8_t DEVICE_CONNECTED = 3;
 
     // Constructor
-    BLEJoystick(std::string deviceName);
+    BLEJoystick(std::string deviceName, std::string manufacturerName);
     
     // Device control methods
     void start();
     void stop();
     void startAdvertising();
     void stopAdvertising();
+    void setAdvertiseOnDisconnect(bool advertise);
     void disconnect();
     
     // Input state setters
