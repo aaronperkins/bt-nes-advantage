@@ -157,7 +157,8 @@ For issues, questions, or contributions, please visit the project repository.
     ![Battery Placement](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/battery_placement.jpg)
     
     - Route wires to avoid interference with moving parts of the joystick
-    - Ensure the RGB LED is visible or positioned near an existing hole
+    - Finally add some insulating tape to the metal back cover to avoid accidental shorting when reassembling.
+    ![Back Cover Tape](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/back_cover.jpg)
 
 ### PCB Layout Notes
 
