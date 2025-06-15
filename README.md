@@ -100,7 +100,7 @@ For issues, questions, or contributions, please visit the project repository.
 - **PCB**: [PCBWay Project - Order PCB](https://www.pcbway.com/project/shareproject/Bluetooth_NES_Advantage_865d24ef.html)
 - **Parts List**: [Digikey Parts List](https://www.digikey.com/en/mylists/list/EVZPX74W7P)
 - **ESP32-C3 SuperMini Module**: [Amazon Link](https://a.co/d/1LoWyFs)
-- **J2 Connector Harness Cable**: [Amazon Link](https://a.co/d/1LoWyFs)
+- **J2 Connector Harness Cable**: [Amazon Link](https://a.co/d/abYfjqw)
 - **Recommended Battery**: [103450 3.7V LiPo Battery](https://a.co/d/7UFYwX9) (IMPORTANT: Check polarity before connecting)
 - **Charging cable**: [DC 2.5x0.7mm Barrel Jack Power Cable](https://a.co/d/4bPUQj2)
 
