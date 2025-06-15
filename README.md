@@ -1,4 +1,4 @@
-# bt-nes-advantage
+# Bluetooth NES Advantage
 Integrated Bluetooth adapter for the NES Advantage (NES-026)
 
 ![BT-NES-Advantage Hero Shot](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/main.jpg)
