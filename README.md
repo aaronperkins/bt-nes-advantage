@@ -179,7 +179,6 @@ For issues, questions, or contributions, please visit the project repository.
 - USB cable for connecting to the ESP32-C3 SuperMini module
 - Required libraries:
   - NimBLE-Arduino (v1.4.1 or later)
-  - Adafruit GFX Library (v1.11.3 or later)
 
 ### Building the Firmware with PlatformIO
 
@@ -194,10 +193,10 @@ For issues, questions, or contributions, please visit the project repository.
    ```
 
 3. **Open the Project in PlatformIO**
-   - In VSCode with PlatformIO extension, select "Open Project" and choose the `src` folder
+   - In VSCode with PlatformIO extension, select "Open Project" and choose the `firmware` folder
    - Or from the command line:
      ```bash
-     cd src
+     cd firmware
      pio project init
      ```
 
@@ -210,7 +209,6 @@ For issues, questions, or contributions, please visit the project repository.
      framework = arduino
      lib_deps =
          h2zero/NimBLE-Arduino@^1.4.1
-         adafruit/Adafruit GFX Library@^1.11.3
      ```
 
 5. **Build the Project**
@@ -266,8 +264,8 @@ For issues, questions, or contributions, please visit the project repository.
 
 4. **Open the Project**
    - Copy the contents from:
-     - `src/src/main.cpp` to a new sketch
-     - `src/src/BLEJoystick.cpp` and `src/include/BLEJoystick.h` to your Arduino libraries folder
+     - `firmware/src/main.cpp` to a new sketch
+     - `firmware/src/BLEJoystick.cpp` and `firmware/include/BLEJoystick.h` to your Arduino libraries folder
 
 5. **Configure Board Settings**
    - Select Tools > Board > ESP32 Arduino > LOLIN C3 Mini
@@ -289,7 +287,6 @@ For issues, questions, or contributions, please visit the project repository.
 
 3. **Firmware Configuration Options**
    - You can customize the controller behavior by modifying these parameters in `main.cpp`:
-     - `SLEEP_TIMEOUT`: Time before sleep mode activates from inactivity
      - `BATTERY_VOLTAGE_CALIBRATION_FACTOR`: Adjust if battery level reading is incorrect
      - Device name: Change `"NES Advantage"` in the constructor if desired
 
