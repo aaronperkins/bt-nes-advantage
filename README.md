@@ -97,6 +97,7 @@ For issues, questions, or contributions, please visit the project repository.
 
 ### Parts Sourcing
 
+- **PCB**: [PCBWay Project - Order PCB](https://www.pcbway.com/project/shareproject/Bluetooth_NES_Advantage_865d24ef.html)
 - **Parts List**: [Digikey Parts List](https://www.digikey.com/en/mylists/list/EVZPX74W7P)
 - **ESP32-C3 SuperMini Module**: [Amazon Link](https://a.co/d/1LoWyFs)
 - **J2 Connector Harness Cable**: [Amazon Link](https://a.co/d/1LoWyFs)
