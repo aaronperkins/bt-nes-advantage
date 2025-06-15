@@ -260,7 +260,6 @@ For issues, questions, or contributions, please visit the project repository.
    - Go to Sketch > Include Library > Manage Libraries
    - Search for and install:
      - "NimBLE-Arduino" by h2zero
-     - "Adafruit GFX Library" by Adafruit
 
 4. **Open the Project**
    - Copy the contents from:
