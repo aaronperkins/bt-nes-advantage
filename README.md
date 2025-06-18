@@ -18,6 +18,10 @@ The BT-NES-Advantage is a custom Bluetooth adapter built into the NES Advantage 
 - RGB status LED indication
 - Battery level monitoring and reporting
 - 5V DC barrel jack charging port
+- Turbo and slow motion functions work as normal
+
+## TODO
+- 1st/2nd player switch (currently only player 1 works)
 
 ## Usage Instructions
 
