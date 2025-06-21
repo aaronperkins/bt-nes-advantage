@@ -160,6 +160,7 @@ For issues, questions, or contributions, please visit the project repository.
         
 7. **Installation in Controller**
     - Carefully open the NES Advantage controller by removing the screws from the bottom. Refer to this video for a full teardown:
+    
     [![NES Advantage Clean & Teardown](https://img.youtube.com/vi/Sw1IDFrGwic/0.jpg)](https://youtu.be/Sw1IDFrGwic?si=m9LdfxoDmvacOw2x)
 
     - Install the battery in the recommended position:
