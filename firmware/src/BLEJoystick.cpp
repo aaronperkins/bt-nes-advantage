@@ -1,7 +1,3 @@
-// BLEJoystick.cpp
-// Bluetooth HID NES Advantage Joystick
-// Copyright (C) 2025 Aaron Perkins
-
 #include "BLEJoystick.h"
 #include <Arduino.h>
 

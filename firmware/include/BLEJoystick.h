@@ -1,7 +1,3 @@
-// BLEJoystick.h
-// Bluetooth HID NES Advantage Joystick
-// Copyright (C) 2025 Aaron Perkins
-
 #ifndef BLE_JOYSTICK_H
 #define BLE_JOYSTICK_H
 

@@ -4,6 +4,12 @@
 	(generator_version "9.0")
 	(uuid "65a65c21-f7b5-417f-8913-03f557b05873")
 	(paper "A4")
+	(title_block
+		(title "Bluetooth NES Advantage")
+		(date "2025-06-20")
+		(rev "1.0")
+		(company "Cajun Panda's Retro Gaming")
+	)
 	(lib_symbols
 		(symbol "Battery_Management:TP4057"
 			(exclude_from_sim no)

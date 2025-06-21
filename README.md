@@ -13,15 +13,15 @@ The BT-NES-Advantage is a custom Bluetooth adapter built into the NES Advantage 
 
 ## Features
 - Wireless Bluetooth connectivity
+- Turbo and slow motion functions work as normal
+- Player select switch
+   - Both players currently map to controller one. In the future it may be possible to maintain two controller connections.
 - Standard gamepad HID implementation
+   - Designed to work out of the box with BlueRetro
 - Long battery life with low power sleep mode
 - RGB status LED indication
 - Battery level monitoring and reporting
 - 5V DC barrel jack charging port
-- Turbo and slow motion functions work as normal
-
-## TODO
-- 1st/2nd player switch (currently only player 1 works)
 
 ## Usage Instructions
 
@@ -112,6 +112,9 @@ For issues, questions, or contributions, please visit the project repository.
 - **J2 Connector Harness Cable**: [Amazon Link](https://a.co/d/abYfjqw)
 - **Recommended Battery**: [103450 3.7V LiPo Battery](https://a.co/d/7UFYwX9) (IMPORTANT: Check polarity before connecting)
 - **Charging cable**: [DC 2.5x0.7mm Barrel Jack Power Cable](https://a.co/d/4bPUQj2)
+
+### Schematic
+[Link to PDF](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/schematic.pdf)
 
 ### Assembly Steps
 
