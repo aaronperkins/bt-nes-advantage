@@ -159,16 +159,19 @@ For issues, questions, or contributions, please visit the project repository.
         ![NES Advantage Pin Mapping](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/pin_mapping.jpg)
         
 7. **Installation in Controller**
-    - Carefully open the NES Advantage controller by removing the screws from the bottom
-    - Place the PCB in the controller as shown below:
-    
-    ![PCB Placement](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/board%20placement.jpg)
-    
+    - Carefully open the NES Advantage controller by removing the screws from the bottom. Refer to this video for a full teardown:
+    [![NES Advantage Clean & Teardown](https://img.youtube.com/vi/Sw1IDFrGwic/0.jpg)](https://youtu.be/Sw1IDFrGwic?si=m9LdfxoDmvacOw2x)
+
     - Install the battery in the recommended position:
     
     ![Battery Placement](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/battery_placement.jpg)
     
+    - Place the PCB in the controller as shown below:
+    
+    ![PCB Placement](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/board%20placement.jpg)
+    
     - Route wires to avoid interference with moving parts of the joystick
+
     - Finally add some insulating tape to the metal back cover to avoid accidental shorting when reassembling.
     ![Back Cover Tape](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/back_cover.jpg)
 
