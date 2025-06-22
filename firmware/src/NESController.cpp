@@ -106,6 +106,10 @@ unsigned long NESController::getLastActivityTime() {
     return _lastActivityTime;
 }
 
+void NESController::resetLastActivityTime() {
+    _lastActivityTime = millis();
+}
+
 uint8_t NESController::getHatDirection(uint8_t player) {
     if (player >= 2) return 0;
     

@@ -42,6 +42,9 @@ public:
     // Update last activity time
     unsigned long getLastActivityTime();
 
+    // Reset last activity time
+    void resetLastActivityTime();
+
     // Get hat direction based on current button states
     uint8_t getHatDirection(uint8_t player);
     

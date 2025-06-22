@@ -24,6 +24,8 @@
 #define BATTERY_VOLTAGE_CALIBRATION_FACTOR 0.928  // Adjust this factor for calibration
 #define BATTERY_MIN_VOLTAGE 3.00                  // Minimum battery voltage (in volts)
 #define BATTERY_MAX_VOLTAGE 4.20                  // Maximum battery voltage (in volts)
+#define BATTERY_SMOOTHING_FACTOR 0.1              // Smoothing factor for EMA (0.0-1.0, lower means more smoothing)
+#define BATTERY_SAMPLES 5                         // Number of samples to average for initial reading
 #define RED_LED_PIN 7
 #define BLUE_LED_PIN 8
 #define GREEN_LED_PIN 9
@@ -39,7 +41,7 @@
 
 // Timing constants
 #define SLEEP_CYCLE_TIME 5000000        // How long the controller sleeps before waking to check input (microseconds)
-#define BATTERY_POLL_TIME 5000          // How often to poll battery status (milliseconds)
+#define BATTERY_POLL_TIME 1000          // How often to poll battery status (milliseconds)
 #define CONNECTION_IDLE_TIMEOUT 60000   // How long the controller remain unconnected before going to sleep (milliseconds)
 #define IDLE_TIMEOUT 300000             // How long the controller remains idle (no buttons presses) before going to sleep (milliseconds)
 #define ADVERTISING_TIMEOUT 30000       // How long the controller advertises before giving up (milliseconds)
@@ -52,7 +54,9 @@ NESController* nesController;
 int playerSelection = 0; // 0 for P1, 1 for P2
 unsigned int batteryLevel = 0;
 float batteryVoltage = 0.0;
-unsigned int prevBatteryLevel = 0;
+float smoothedBatteryVoltage = 0.0;
+bool isCharging = false;
+bool isFullyCharged = false;
 unsigned long idleStartTime = 0;
 unsigned long advertisingStartTime = 0;
 unsigned long lastBatteryCheck = 0;
@@ -63,7 +67,7 @@ RTC_DATA_ATTR bool sleeping = false;
 // Function prototypes
 void joystickStateCallback();
 void playerSelectionCallback(uint8_t newPlayer);
-int readBatteryLevel();
+bool readBatteryState();
 void checkTimers();
 void enterSleepMode();
 void reportControllerState();
@@ -74,11 +78,19 @@ void setup() {
   nesController->begin();
   nesController->setPlayerSelectionCallback(playerSelectionCallback);
 
-  // If sleeping, keep sleeping until the start button is held
+  // Configure battery state pins
+  pinMode(BATTERY_CHARGE_PIN, INPUT_PULLUP);
+  pinMode(BATTERY_STANDBY_PIN, INPUT_PULLUP);
+
+  // Initialize battery readings
+  readBatteryState();
+
+  // If sleeping, keep sleeping until the start button is held or battery is charging
   if (sleeping) {
     nesController->read();
     playerSelection = nesController->getPlayerSelection();
-    if (!nesController->getButtonState(playerSelection, NESController::BUTTON_START)) {
+    if (!nesController->getButtonState(playerSelection, NESController::BUTTON_START)
+          && !isCharging) {
       enterSleepMode();
     }
     else {
@@ -86,14 +98,10 @@ void setup() {
     }
   }
 
-  // Configure other pins
+  // Configure LED pins
   pinMode(RED_LED_PIN, OUTPUT);
   pinMode(GREEN_LED_PIN, OUTPUT);
   pinMode(BLUE_LED_PIN, OUTPUT);
-  pinMode(BATTERY_CHARGE_PIN, INPUT_PULLUP);
-  pinMode(BATTERY_STANDBY_PIN, INPUT_PULLUP);
-
-  // Set initial pin states
   digitalWrite(RED_LED_PIN, HIGH);
   digitalWrite(GREEN_LED_PIN, HIGH);
   digitalWrite(BLUE_LED_PIN, HIGH);
@@ -105,9 +113,6 @@ void setup() {
   idleStartTime = millis();
   advertisingStartTime = millis();
   lastBatteryCheck = millis();
-
-  // Update battery level
-  batteryLevel = readBatteryLevel();
 
   // Initialize the joystick and begin advertising
   joystick = new BLEJoystick("NES Advantage", "Cajun Panda's Retro Gaming");
@@ -204,16 +209,19 @@ void playerSelectionCallback(uint8_t newPlayer) {
 void checkTimers() {
   unsigned long currentTime = millis();
   
-  // Check battery level periodically
+  // Check battery state periodically
   if (currentTime - lastBatteryCheck > BATTERY_POLL_TIME) {
-    // Update battery level
-    batteryLevel = readBatteryLevel();
-    if (batteryLevel != prevBatteryLevel) {
+    if (readBatteryState()) {
       Serial.print("Battery level: ");
       Serial.print(batteryLevel);
-      Serial.print(" Battery voltage: ");
-      Serial.println(batteryVoltage);
-      prevBatteryLevel = batteryLevel;
+      Serial.print("% - Battery voltage: ");
+      Serial.print(batteryVoltage, 3);
+      Serial.print("V - Charging: ");
+      Serial.print(isCharging ? "Yes" : "No");
+      Serial.print(" - Fully charged: ");
+      Serial.println(isFullyCharged ? "Yes" : "No");
+      
+      // If connected, update BLE Joystick battery level
       if (joystick->getState() == BLEJoystick::DEVICE_CONNECTED) {
         joystick->setBatteryLevel(batteryLevel);
         joystick->notifyBatteryLevel();
@@ -244,16 +252,24 @@ void checkTimers() {
   }
 
   // Check for connection inactivity - put device to sleep
-  if (joystick->getState() == BLEJoystick::DEVICE_IDLE && 
-      currentTime - idleStartTime > CONNECTION_IDLE_TIMEOUT) {
+  if (joystick->getState() == BLEJoystick::DEVICE_IDLE 
+      && !isCharging 
+      && currentTime - idleStartTime > CONNECTION_IDLE_TIMEOUT) {
     Serial.println("Connection timeout, going to sleep...");
     enterSleepMode();
+  } else if (isCharging) {
+    // Reset idle timer if charging
+    idleStartTime = currentTime;
   }
 
   // Check for inactivity - put device to sleep if no button press 
-  if (currentTime - nesController->getLastActivityTime() > IDLE_TIMEOUT) {
+  if (currentTime - nesController->getLastActivityTime() > IDLE_TIMEOUT
+      && !isCharging) {
     Serial.println("No button activity, going to sleep...");
     enterSleepMode();
+  } else if (isCharging) {
+    // Reset timer if charging
+    nesController->resetLastActivityTime();
   }
   
   // Check if device is advertising for too long
@@ -310,15 +326,44 @@ void checkTimers() {
   }
 }
 
-int readBatteryLevel() {
-  int raw = analogRead(BATTERY_PIN);
-  batteryVoltage = (raw / 4095.0) * 3.3; 
-  batteryVoltage = (batteryVoltage * (BATTERY_VOLTAGE_DIVIDER_R1 + BATTERY_VOLTAGE_DIVIDER_R2)) / BATTERY_VOLTAGE_DIVIDER_R2;
-  batteryVoltage *= BATTERY_VOLTAGE_CALIBRATION_FACTOR;
-  int percentage = (int)(((batteryVoltage - BATTERY_MIN_VOLTAGE) / (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE)) * 100.0);
-  if (percentage > 100) percentage = 100;
-  if (percentage < 0) percentage = 0;
-  return percentage;
+bool readBatteryState() {
+  bool wasCharging = isCharging;
+  bool wasFullyCharged = isFullyCharged;
+  isCharging = digitalRead(BATTERY_CHARGE_PIN) == LOW;
+  isFullyCharged = digitalRead(BATTERY_STANDBY_PIN) == LOW;
+  // If charging state changed, reset smoothed voltage
+  if (wasCharging != isCharging || wasFullyCharged != isFullyCharged)
+  {
+    smoothedBatteryVoltage = 0.0; // Reset smoothed voltage when charging state changes
+  }
+  
+  // Read raw ADC value and convert to voltage
+  float currentVoltage = (analogRead(BATTERY_PIN) / 4095.0) * 3.3;
+  currentVoltage = (currentVoltage * (BATTERY_VOLTAGE_DIVIDER_R1 + BATTERY_VOLTAGE_DIVIDER_R2)) / BATTERY_VOLTAGE_DIVIDER_R2;
+  currentVoltage *= BATTERY_VOLTAGE_CALIBRATION_FACTOR;
+  
+  // Apply exponential moving average filter for smoothing
+  if (smoothedBatteryVoltage == 0.0) {
+    // First reading or after reset
+    smoothedBatteryVoltage = currentVoltage;
+  } else {
+    // Apply EMA filter: smoothed = (1-alpha) * smoothed + alpha * current
+    smoothedBatteryVoltage = (1 - BATTERY_SMOOTHING_FACTOR) * smoothedBatteryVoltage + 
+                            BATTERY_SMOOTHING_FACTOR * currentVoltage;
+  }
+  
+  // Update the global voltage variable with the smoothed value
+  batteryVoltage = smoothedBatteryVoltage;
+  
+  // Calculate percentage based on smoothed voltage
+  unsigned int prevBatteryLevel = batteryLevel;
+  batteryLevel = (unsigned int)(((smoothedBatteryVoltage - BATTERY_MIN_VOLTAGE) / 
+                         (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE)) * 100.0);
+  if (batteryLevel > 100) batteryLevel = 100;
+
+  return wasCharging != isCharging || 
+         wasFullyCharged != isFullyCharged || 
+         prevBatteryLevel != batteryLevel;
 }
 
 void enterSleepMode() {
