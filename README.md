@@ -176,22 +176,52 @@ For issues, questions, or contributions, please visit the project repository.
     - Finally add some insulating tape to the metal back cover to avoid accidental shorting when reassembling.
     ![Back Cover Tape](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/back_cover.jpg)
 
-### PCB Layout Notes
-
-- The board is designed to fit within the NES Advantage controller case without modification
-- Battery placement should avoid contact with moving parts of the joystick
-- DC jack should be accessible through a hole in the case
-- RGB LED should be positioned to be visible from outside the controller
-
 ## Firmware Instructions
 
-### Prerequisites
+### Option 1: Using Prebuilt Firmware (Recommended)
+
+1. **Download the Firmware**
+   - Go to the [Releases page](https://github.com/aaronperkins/bt-nes-advantage/releases) on GitHub
+   - Download the latest `firmware.bin` file
+
+2. **Install ESP Flash Tool**
+   - Download the [ESP Flash Download Tool](https://www.espressif.com/en/support/download/other-tools) from Espressif
+   - For Windows: Use the ESP Flash Download Tool GUI
+   - For Linux/Mac: Install `esptool` via pip:
+     ```bash
+     pip install esptool
+     ```
+
+3. **Connect the ESP32-C3 SuperMini**
+   - Connect the ESP32-C3 SuperMini module to your computer via USB
+   - Put the device in download mode by holding the BOOT button while connecting
+
+4. **Flash the Firmware**
+   - For Windows (using ESP Flash Download Tool):
+     - Select Chip Type: ESP32-C3
+     - Select firmware.bin at address 0x0
+     - Select the correct COM port
+     - Click "START" to begin flashing
+   
+   - For Linux/Mac (using esptool):
+     ```bash
+     esptool.py --port /dev/ttyUSB0 write_flash 0x0 firmware.bin
+     ```
+     (Replace `/dev/ttyUSB0` with your actual port)
+
+5. **Verify Installation**
+   - After flashing completes, press the RST button or disconnect and reconnect the device
+   - The blue LED should start blinking indicating pairing mode
+
+### Option 2: Building and Uploading from Source
+
+#### Prerequisites
 - [PlatformIO](https://platformio.org/install) (recommended) or Arduino IDE
 - USB cable for connecting to the ESP32-C3 SuperMini module
 - Required libraries:
   - NimBLE-Arduino (v1.4.1 or later)
 
-### Building the Firmware with PlatformIO
+#### Building the Firmware with PlatformIO
 
 1. **Install PlatformIO**
    - Install PlatformIO IDE as an extension for VSCode
@@ -229,13 +259,10 @@ For issues, questions, or contributions, please visit the project repository.
      pio run
      ```
 
-### Uploading the Firmware
-
 1. **Connect the ESP32-C3 SuperMini**
    - Connect the ESP32-C3 SuperMini module to your computer via USB
    - If you've already installed it in the controller, you'll need to either:
-     - Connect to the USB port on the module (if accessible)
-     - Or temporarily remove the module from the PCB for programming
+     - Connect to the USB port on the module
 
 2. **Upload the Firmware**
    - In PlatformIO IDE, click on the "Upload" button
@@ -251,52 +278,4 @@ For issues, questions, or contributions, please visit the project repository.
      ```bash
      pio device monitor -b 9600
      ```
-
-### Building with Arduino IDE (Alternative)
-
-1. **Install Arduino IDE**
-   - Download and install the latest Arduino IDE from [arduino.cc](https://www.arduino.cc/en/software)
-
-2. **Install ESP32 Board Support**
-   - Open Arduino IDE
-   - Go to File > Preferences
-   - Add the following URL to the "Additional Board Manager URLs" field:
-     ```
-     https://raw.githubusercontent.com/espressif/arduino-esp32/gh-pages/package_esp32_index.json
-     ```
-   - Go to Tools > Board > Boards Manager
-   - Search for "esp32" and install the "ESP32 by Espressif Systems"
-
-3. **Install Required Libraries**
-   - Go to Sketch > Include Library > Manage Libraries
-   - Search for and install:
-     - "NimBLE-Arduino" by h2zero
-
-4. **Open the Project**
-   - Copy the contents from:
-     - `firmware/src/main.cpp` to a new sketch
-     - `firmware/src/BLEJoystick.cpp` and `firmware/include/BLEJoystick.h` to your Arduino libraries folder
-
-5. **Configure Board Settings**
-   - Select Tools > Board > ESP32 Arduino > LOLIN C3 Mini
-
-6. **Upload the Sketch**
-   - Click the Upload button
-
-### Testing After Upload
-
-1. **Basic Functionality Test**
-   - After uploading the firmware, the controller will automatically enter pairing mode
-   - The blue LED should start blinking
-   - Use a Bluetooth device to test pairing and button functionality
-
-2. **Troubleshooting Upload Issues**
-   - If you can't upload, ensure you're in upload mode by holding the BOOT button while connecting USB
-   - Check that the correct port is selected in the IDE
-   - Verify your USB cable is a data cable, not just a charging cable
-
-3. **Firmware Configuration Options**
-   - You can customize the controller behavior by modifying these parameters in `main.cpp`:
-     - `BATTERY_VOLTAGE_CALIBRATION_FACTOR`: Adjust if battery level reading is incorrect
-     - Device name: Change `"NES Advantage"` in the constructor if desired
 
