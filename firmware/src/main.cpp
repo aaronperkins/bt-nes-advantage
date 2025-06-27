@@ -55,8 +55,9 @@ int playerSelection = 0; // 0 for P1, 1 for P2
 unsigned int batteryLevel = 0;
 float batteryVoltage = 0.0;
 float smoothedBatteryVoltage = 0.0;
-bool isCharging = false;
-bool isFullyCharged = false;
+bool isBatteryCharging = false;
+bool isBatteryStandBy = false;
+bool isExternalPower = false;
 unsigned long idleStartTime = 0;
 unsigned long advertisingStartTime = 0;
 unsigned long lastBatteryCheck = 0;
@@ -90,7 +91,7 @@ void setup() {
     nesController->read();
     playerSelection = nesController->getPlayerSelection();
     if (!nesController->getButtonState(playerSelection, NESController::BUTTON_START)
-          && !isCharging) {
+          && !isExternalPower) {
       enterSleepMode();
     }
     else {
@@ -114,7 +115,7 @@ void setup() {
   advertisingStartTime = millis();
   lastBatteryCheck = millis();
 
-  // Initialize the joystick and begin advertising
+  // Initialize the BLE joystick and begin advertising
   joystick = new BLEJoystick("NES Advantage", "Cajun Panda's Retro Gaming");
   joystick->setStateChangeCallback(joystickStateCallback);
   joystick->start();
@@ -217,9 +218,9 @@ void checkTimers() {
       Serial.print("% - Battery voltage: ");
       Serial.print(batteryVoltage, 3);
       Serial.print("V - Charging: ");
-      Serial.print(isCharging ? "Yes" : "No");
-      Serial.print(" - Fully charged: ");
-      Serial.println(isFullyCharged ? "Yes" : "No");
+      Serial.print(isBatteryCharging ? "Yes" : "No");
+      Serial.print(" - Standby: ");
+      Serial.println(isBatteryStandBy ? "Yes" : "No");
       
       // If connected, update BLE Joystick battery level
       if (joystick->getState() == BLEJoystick::DEVICE_CONNECTED) {
@@ -238,12 +239,11 @@ void checkTimers() {
   }
 
   // Check battery charging status and update GREEN LED
-  bool isCharging = digitalRead(BATTERY_CHARGE_PIN) == LOW;
-  bool isFullyCharged = digitalRead(BATTERY_STANDBY_PIN) == LOW;
-  if (isCharging && !isFullyCharged) {
+
+  if (isBatteryCharging && !isBatteryStandBy) {
     // Blinking green LED when charging (toggle every 500ms)
     digitalWrite(GREEN_LED_PIN, (currentTime / 500) % 2 == 0);
-  } else if (isFullyCharged) {
+  } else if (isBatteryStandBy) {
     // Solid green LED when fully charged
     digitalWrite(GREEN_LED_PIN, LOW); // LED is active LOW
   } else {
@@ -252,22 +252,22 @@ void checkTimers() {
   }
 
   // Check for connection inactivity - put device to sleep
-  if (joystick->getState() == BLEJoystick::DEVICE_IDLE 
-      && !isCharging 
+  if (joystick->getState() == BLEJoystick::DEVICE_IDLE
+      && !isExternalPower
       && currentTime - idleStartTime > CONNECTION_IDLE_TIMEOUT) {
     Serial.println("Connection timeout, going to sleep...");
     enterSleepMode();
-  } else if (isCharging) {
+  } else if (isExternalPower) {
     // Reset idle timer if charging
     idleStartTime = currentTime;
   }
 
   // Check for inactivity - put device to sleep if no button press 
   if (currentTime - nesController->getLastActivityTime() > IDLE_TIMEOUT
-      && !isCharging) {
+      && !isExternalPower) {
     Serial.println("No button activity, going to sleep...");
     enterSleepMode();
-  } else if (isCharging) {
+  } else if (isExternalPower) {
     // Reset timer if charging
     nesController->resetLastActivityTime();
   }
@@ -327,12 +327,13 @@ void checkTimers() {
 }
 
 bool readBatteryState() {
-  bool wasCharging = isCharging;
-  bool wasFullyCharged = isFullyCharged;
-  isCharging = digitalRead(BATTERY_CHARGE_PIN) == LOW;
-  isFullyCharged = digitalRead(BATTERY_STANDBY_PIN) == LOW;
+  bool wasCharging = isBatteryCharging;
+  bool wasFullyCharged = isBatteryStandBy;
+  isBatteryCharging = digitalRead(BATTERY_CHARGE_PIN) == LOW;
+  isBatteryStandBy = digitalRead(BATTERY_STANDBY_PIN) == LOW;
+  isExternalPower = isBatteryCharging || isBatteryStandBy;
   // If charging state changed, reset smoothed voltage
-  if (wasCharging != isCharging || wasFullyCharged != isFullyCharged)
+  if (wasCharging != isBatteryCharging || wasFullyCharged != isBatteryStandBy)
   {
     smoothedBatteryVoltage = 0.0; // Reset smoothed voltage when charging state changes
   }
@@ -361,8 +362,8 @@ bool readBatteryState() {
                          (BATTERY_MAX_VOLTAGE - BATTERY_MIN_VOLTAGE)) * 100.0);
   if (batteryLevel > 100) batteryLevel = 100;
 
-  return wasCharging != isCharging || 
-         wasFullyCharged != isFullyCharged || 
+  return wasCharging != isBatteryCharging || 
+         wasFullyCharged != isBatteryStandBy || 
          prevBatteryLevel != batteryLevel;
 }
 
