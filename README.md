@@ -202,15 +202,16 @@ For issues, questions, or contributions, please visit the project repository.
 4. **Flash the Firmware**
    - For Windows (using ESP Flash Download Tool):
      - Select Chip Type: ESP32-C3
-     - Select firmware.bin at address 0x0
+     - Select bootloader.bin at address 0x0000
+     - Select partitions.bin at address 0x8000
+     - Select firmware.bin at address 0x10000
      - Select the correct COM port
      - Click "START" to begin flashing
    
    - For Linux/Mac (using esptool):
      ```bash
-     esptool.py --port /dev/ttyUSB0 write_flash 0x0 firmware.bin
+     esptool.py write_flash 0x0000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin
      ```
-     (Replace `/dev/ttyUSB0` with your actual port)
 
 5. **Verify Installation**
    - After flashing completes, press the RST button or disconnect and reconnect the device
