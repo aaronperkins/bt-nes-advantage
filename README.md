@@ -116,6 +116,9 @@ For issues, questions, or contributions, please visit the project repository.
 ### Schematic
 [Link to PDF](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/schematic.pdf)
 
+### Gerber
+[Link to Gerber files](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/pcb/bt-nes-advantage.kicad_pcb.zip)
+
 ### Assembly Steps
 
 1. **PCB Preparation**
