@@ -185,7 +185,7 @@ For issues, questions, or contributions, please visit the project repository.
 
 1. **Download the Firmware**
    - Go to the [Releases page](https://github.com/aaronperkins/bt-nes-advantage/releases) on GitHub
-   - Download the latest `firmware.bin` file
+   - Download the latest `bootloader.bin`, `partitions.bin ` and `firmware.bin` files
 
 2. **Install ESP Flash Tool**
    - Download the [ESP Flash Download Tool](https://www.espressif.com/en/support/download/other-tools) from Espressif
