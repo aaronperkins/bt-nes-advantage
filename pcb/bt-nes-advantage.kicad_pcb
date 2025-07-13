@@ -7928,6 +7928,16 @@
 		(layer "B.SilkS")
 		(uuid "011e8418-bd82-4776-a95a-9f015dd12f80")
 	)
+	(gr_line
+		(start 167 102)
+		(end 167 101.5)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "B.SilkS")
+		(uuid "07a407ed-f2ba-499c-ad46-8a3f0d25fff2")
+	)
 	(gr_poly
 		(pts
 			(xy 126.584608 112.516375) (xy 126.577529 112.575573) (xy 126.561469 112.693608) (xy 126.526079 112.929233)
@@ -8868,6 +8878,16 @@
 		(layer "B.SilkS")
 		(uuid "15af0e95-fb4b-4939-8563-bae4de53c818")
 	)
+	(gr_line
+		(start 167 103.5)
+		(end 167 103)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "B.SilkS")
+		(uuid "1b4baede-5d80-49b7-94cb-dffa000beb1c")
+	)
 	(gr_poly
 		(pts
 			(xy 135.027607 110.895208) (xy 135.055192 110.894927) (xy 135.082736 110.89491) (xy 135.096505 110.895084)
@@ -9055,6 +9075,26 @@
 		(layer "B.SilkS")
 		(uuid "a452ef85-4f38-4c3a-9880-dc8dcba937e3")
 	)
+	(gr_line
+		(start 166.5 103)
+		(end 167 103)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "B.SilkS")
+		(uuid "a579efaf-9920-414c-8106-9f341192c1a8")
+	)
+	(gr_line
+		(start 167.5 103)
+		(end 167 103)
+		(stroke
+			(width 0.1)
+			(type default)
+		)
+		(layer "B.SilkS")
+		(uuid "a698157f-678a-484d-8019-27f7f128c71e")
+	)
 	(gr_poly
 		(pts
 			(xy 129.620588 114.747589) (xy 129.611453 114.748469) (xy 129.602488 114.749918) (xy 129.593702 114.751918)
@@ -9093,6 +9133,18 @@
 		(fill yes)
 		(layer "B.SilkS")
 		(uuid "c8397cdf-5eab-4d5d-bc2c-06f406610590")
+	)
+	(gr_poly
+		(pts
+			(xy 166.5 102) (xy 167.5 102) (xy 167 103)
+		)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill yes)
+		(layer "B.SilkS")
+		(uuid "d05bf859-5ca1-419b-85f5-03224587acc0")
 	)
 	(gr_poly
 		(pts
@@ -9209,6 +9261,18 @@
 		)
 		(layer "Edge.Cuts")
 		(uuid "c3f078a1-d0d9-425f-a4e0-5ff2183ada5b")
+	)
+	(gr_text "RED"
+		(at 166.235 106.5 90)
+		(layer "B.SilkS")
+		(uuid "363cc250-5425-484b-9ca9-3ac4419930e0")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom mirror)
+		)
 	)
 	(gr_text "Bluetooth NES Advantage 1.0"
 		(at 146 110 0)
@@ -9477,6 +9541,30 @@
 					(xy 110.212316 108.425108) (xy 110.621179 108.425108)
 				)
 			)
+		)
+	)
+	(gr_text "GREEN"
+		(at 163 106.5 90)
+		(layer "B.SilkS")
+		(uuid "b287752f-5409-484b-9c2c-e5ee89741905")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom mirror)
+		)
+	)
+	(gr_text "BLUE"
+		(at 164.5 109.5 90)
+		(layer "B.SilkS")
+		(uuid "c0dda55b-eda8-4f84-b6f2-ce0ece39991a")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+			(justify left bottom mirror)
 		)
 	)
 	(segment
