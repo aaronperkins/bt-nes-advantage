@@ -16,8 +16,12 @@ The BT-NES-Advantage is a custom Bluetooth adapter built into the NES Advantage 
 - Turbo and slow motion functions work as normal
 - Player select switch
    - Both players currently map to controller one. In the future it may be possible to maintain two controller connections.
-- Standard gamepad HID implementation
-   - Designed to work out of the box with BlueRetro
+- Standard gamepad HID implementation, tested with:
+   - BlueRetro
+   - Windows
+   - Android
+   - SteamOS
+   - Linux
 - Long battery life with low power sleep mode
 - RGB status LED indication
 - Battery level monitoring and reporting
@@ -33,16 +37,33 @@ The BT-NES-Advantage is a custom Bluetooth adapter built into the NES Advantage 
 
 ### Button Mapping
 The NES Advantage controller buttons are mapped to standard gamepad controls:
-- **D-Pad** - Maps to the directional pad or left analog stick
-- **A button** - Maps to Button 1
-- **B button** - Maps to Button 4
-- **Start button** - Maps to Start button
-- **Select button** - Maps to Select button
+- **D-Pad** - Maps to the directional pad or left analog stick (configurable)
+- **A button** - Maps to Button 1 (default profile) or Button 1 (Blue Retro profile)
+- **B button** - Maps to Button 2 (default profile) or Button 4 (Blue Retro profile)
+- **Start button** - Maps to Start button (Button 12)
+- **Select button** - Maps to Select button (Button 11)
+
+#### Button Mapping Profiles
+The controller supports multiple button mapping profiles:
+1. **Default Profile** - A=Button 1, B=Button 2, Select=Button 11, Start=Button 12
+2. **Blue Retro Profile** - A=Button 1, B=Button 4, Select=Button 11, Start=Button 12
+
+To change profiles, hold **A + B + Up** for 5 seconds. The red LED will blink to indicate the current profile (1 blink = Profile 1, 2 blinks = Profile 2).
+
+#### Directional Input Modes
+The controller supports three directional input modes:
+1. **D-Pad Only** - Directional input sent only to the D-pad/hat switch
+2. **Axes Only** - Directional input sent only to the analog stick axes
+3. **Both** - Directional input sent to both D-pad and analog stick axes
+
+To change directional modes, hold **Down + A + B** for 5 seconds. The red LED will blink to indicate the current mode (1 blink = D-Pad Only, 2 blinks = Axes Only, 3 blinks = Both).
 
 ### Special Functions
 - **Sleep mode** - To manually put the controller into sleep mode, hold the **Start button** for 5 seconds. The LEDs will turn off when the controller enters sleep mode.
 - **Reconnect/Pair new device** - To disconnect from the current device and enter pairing mode again, hold the **Select button** for 5 seconds.
 - **Wake from sleep** - Hold the **Start button** to wake the controller from sleep mode.
+- **Change button mapping profile** - Hold **A + B + Up** for 5 seconds to cycle through available button mapping profiles. The red LED will blink to indicate the current profile number.
+- **Change directional pad mode** - Hold **Down + A + B** for 5 seconds to cycle through directional input modes (D-Pad Only, Axes Only, Both). The red LED will blink to indicate the current mode.
 
 ### LED Indicators
 - **Blue LED**:
@@ -69,7 +90,6 @@ The NES Advantage controller buttons are mapped to standard gamepad controls:
 
 ### Troubleshooting
 - If unable to pair with a new device, ensure the controller is in pairing mode (blue LED blinking).
-- For persistent issues, try charging the controller fully before use.
 
 ## Technical Specifications
 - MCU: ESP32-C3 (LOLIN C3 Mini)
@@ -79,11 +99,8 @@ The NES Advantage controller buttons are mapped to standard gamepad controls:
 - Power consumption: ~120mA when connected, <1mA in sleep mode
 - Original NES controller compatibility: 100% hardware compatible
 
-## Support
-For issues, questions, or contributions, please visit the project repository.
-
 ## PCB Assembly Instructions
-
+![Finished PCB](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/finished_pcb_front.jpg)
 ### Bill of Materials (BOM)
 
 | Designator | Qty | Value | Footprint | Description | Notes |
@@ -120,7 +137,6 @@ For issues, questions, or contributions, please visit the project repository.
 [Link to Gerber files](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/pcb/bt-nes-advantage.kicad_pcb.zip)
 
 ### Assembly Steps
-
 1. **PCB Preparation**
    - Ensure you have the latest PCB design files from the `pcb` directory
    - Verify that all components from the BOM are available before starting
@@ -132,6 +148,8 @@ For issues, questions, or contributions, please visit the project repository.
      3. Diodes (D1-D3)
      4. LEDs (D4-D6) - Note the polarity! Cathode (K) is marked
      5. ICs (U1, U2)
+     ![U1 Orientation](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/u1_orientation.jpg)
+*TP4057 U1 pin 1 may not be marked, make sure to get the orientation right by referencing this image and the datasheet.*
      6. Inductor (L1)
      7. DC Jack (J1)
    - Then place through-hole components:
@@ -150,6 +168,8 @@ For issues, questions, or contributions, please visit the project repository.
 
 4. **Power Connections**
    - The battery connector (J3) is for a 3.7V LiPo battery
+     ![Battery Connector Polarity](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/battery_connector_polarity.jpg)
+*Check your battery polarity! There isn't a standard and it may be swapped from what is required!*   
    - Use appropriate JST PH connector with correct polarity
    - The power jack (J1) accepts 5V DC input
 

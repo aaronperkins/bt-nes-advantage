@@ -17,6 +17,7 @@
 #include <Arduino.h>
 #include "BLEJoystick.h"
 #include "NESController.h"
+#include <Preferences.h>
 
 #define BATTERY_PIN 0
 #define BATTERY_VOLTAGE_DIVIDER_R1 100000         // 100k ohm (nominal)
@@ -47,11 +48,48 @@
 #define ADVERTISING_TIMEOUT 30000       // How long the controller advertises before giving up (milliseconds)
 #define POWER_OFF_HOLD_TIME 5000        // How long the start button must be held to power off (milliseconds)
 #define RECONNECT_HOLD_TIME 5000        // How long the select button must be held to reconnect (milliseconds)
+#define PROFILE_CHANGE_HOLD_TIME 5000   // How long A+B+Up must be held to change profile (milliseconds)
+#define DPAD_MODE_CHANGE_HOLD_TIME 5000 // How long Down+A+B must be held to change dpad mode (milliseconds)
+
+// Directional input modes
+enum DirectionalMode {
+  DPAD_ONLY = 0,    // Send directional input to dpad only
+  AXES_ONLY = 1,    // Send directional input to axes only  
+  BOTH = 2          // Send directional input to both dpad and axes
+};
+
+const char* directionalModeNames[] = {
+  "D-Pad Only",
+  "Axes Only", 
+  "Both"
+};
+
+const uint8_t NUM_DIRECTIONAL_MODES = sizeof(directionalModeNames) / sizeof(directionalModeNames[0]);
+
+// Button mapping profiles
+struct ButtonProfile {
+  const char* name;
+  uint8_t buttonA;      // Joystick button for NES A
+  uint8_t buttonB;      // Joystick button for NES B
+  uint8_t buttonSelect; // Joystick button for NES SELECT
+  uint8_t buttonStart;  // Joystick button for NES START
+};
+
+// Define available profiles
+const ButtonProfile profiles[] = {
+  {"Default", 1, 2, 11, 12},      // Profile 1: Default mapping
+  {"Blue Retro", 1, 4, 11, 12}   // Profile 2: Blue Retro mapping
+};
+
+const uint8_t NUM_PROFILES = sizeof(profiles) / sizeof(profiles[0]);
 
 // Global state
 BLEJoystick* joystick;
 NESController* nesController;
+Preferences preferences;
 int playerSelection = 0; // 0 for P1, 1 for P2
+uint8_t currentProfile = 0; // Current button mapping profile
+DirectionalMode currentDirectionalMode = DPAD_ONLY; // Current directional input mode
 unsigned int batteryLevel = 0;
 float batteryVoltage = 0.0;
 float smoothedBatteryVoltage = 0.0;
@@ -63,17 +101,31 @@ unsigned long advertisingStartTime = 0;
 unsigned long lastBatteryCheck = 0;
 unsigned long startButtonPressTime = 0;
 unsigned long selectButtonPressTime = 0;
+unsigned long profileChangeStartTime = 0;
+unsigned long dpadModeChangeStartTime = 0;
 RTC_DATA_ATTR bool sleeping = false;
 
 // Function prototypes
 void joystickStateCallback();
 void playerSelectionCallback(uint8_t newPlayer);
+void loadProfile();
+void saveProfile();
+void changeProfile();
+void blinkIndicator(uint8_t profile, uint8_t count);
+void loadDirectionalMode();
+void saveDirectionalMode();
+void changeDirectionalMode();
+void updateJoystickDirectional();
+void updateJoystickButtons();
 bool readBatteryState();
 void checkTimers();
 void enterSleepMode();
 void reportControllerState();
 
 void setup() {
+  // Initialize preferences for persistent storage
+  preferences.begin("nes-advantage", false);
+  
   // Initialize NES controller
   nesController = new NESController(CLK_PIN_P1, CLK_PIN_P2, LATCH_PIN, DATA_PIN_P1, DATA_PIN_P2);
   nesController->begin();
@@ -109,6 +161,12 @@ void setup() {
 
   // Initialize serial for debugging
   Serial.begin(9600);
+
+  // Load saved profile
+  loadProfile();
+  
+  // Load saved directional mode
+  loadDirectionalMode();
     
   // Initialize timers
   idleStartTime = millis();
@@ -132,26 +190,12 @@ void loop() {
 
     // If connected, update BLE Joystick state
     if (joystick->getState() == BLEJoystick::DEVICE_CONNECTED) {
-      // Get directional values from controller
-      uint8_t dpadDirection = nesController->getHatDirection(playerSelection);
-      int8_t x = nesController->getXAxis(playerSelection);
-      int8_t y = nesController->getYAxis(playerSelection);
-      joystick->setHat(dpadDirection);
-      joystick->setAxes(x, y, 0, 0, 0, 0, 0, 0);
-      joystick->setButtons(
-        nesController->getButtonState(playerSelection, NESController::BUTTON_A), 
-        false,   
-        false, 
-        nesController->getButtonState(playerSelection, NESController::BUTTON_B),
-        false, 
-        false,
-        false, 
-        false,
-        false, 
-        false,
-        nesController->getButtonState(playerSelection, NESController::BUTTON_SELECT),
-        nesController->getButtonState(playerSelection, NESController::BUTTON_START)
-      );
+      // Update directional input based on current mode
+      updateJoystickDirectional();
+      
+      // Update button states based on current profile
+      updateJoystickButtons();
+      
       joystick->notifyHIDReport();
     // else begin advertising
     } else if (joystick->getState() == BLEJoystick::DEVICE_IDLE 
@@ -324,6 +368,48 @@ void checkTimers() {
     // Select button released
     selectButtonPressTime = 0;
   }
+  
+  // Check for profile change combination (A + B + Up held for 5 seconds)
+  if (nesController->getButtonState(playerSelection, NESController::BUTTON_A) &&
+      nesController->getButtonState(playerSelection, NESController::BUTTON_B) &&
+      nesController->getButtonState(playerSelection, NESController::BUTTON_UP)) {
+    // Profile change combination pressed or still being held
+    if (profileChangeStartTime == 0) {
+      // Just pressed, record time
+      profileChangeStartTime = currentTime;
+    } else if (currentTime - profileChangeStartTime >= PROFILE_CHANGE_HOLD_TIME) {
+      // Held for the required duration, change profile
+      Serial.println("A+B+Up held for 5 seconds, changing profile...");
+      changeProfile();
+      
+      // Only perform the action once when threshold is reached
+      profileChangeStartTime = 0;
+    }
+  } else {
+    // Profile change combination released
+    profileChangeStartTime = 0;
+  }
+  
+  // Check for directional mode change combination (Down + A + B held for 5 seconds)
+  if (nesController->getButtonState(playerSelection, NESController::BUTTON_DOWN) &&
+      nesController->getButtonState(playerSelection, NESController::BUTTON_A) &&
+      nesController->getButtonState(playerSelection, NESController::BUTTON_B)) {
+    // Directional mode change combination pressed or still being held
+    if (dpadModeChangeStartTime == 0) {
+      // Just pressed, record time
+      dpadModeChangeStartTime = currentTime;
+    } else if (currentTime - dpadModeChangeStartTime >= DPAD_MODE_CHANGE_HOLD_TIME) {
+      // Held for the required duration, change directional mode
+      Serial.println("Down+A+B held for 5 seconds, changing directional mode...");
+      changeDirectionalMode();
+      
+      // Only perform the action once when threshold is reached
+      dpadModeChangeStartTime = 0;
+    }
+  } else {
+    // Directional mode change combination released
+    dpadModeChangeStartTime = 0;
+  }
 }
 
 bool readBatteryState() {
@@ -375,4 +461,140 @@ void enterSleepMode() {
   sleeping = true;
   esp_sleep_enable_timer_wakeup(SLEEP_CYCLE_TIME);
   esp_deep_sleep_start();
+}
+
+void loadProfile() {
+  currentProfile = preferences.getUChar("profile", 0);
+  if (currentProfile >= NUM_PROFILES) {
+    currentProfile = 0; // Default to first profile if invalid
+  }
+  
+  Serial.print("Loaded profile: ");
+  Serial.print(currentProfile + 1);
+  Serial.print(" (");
+  Serial.print(profiles[currentProfile].name);
+  Serial.println(")");
+}
+
+void saveProfile() {
+  preferences.putUChar("profile", currentProfile);
+  Serial.print("Saved profile: ");
+  Serial.print(currentProfile + 1);
+  Serial.print(" (");
+  Serial.print(profiles[currentProfile].name);
+  Serial.println(")");
+}
+
+void changeProfile() {
+  currentProfile = (currentProfile + 1) % NUM_PROFILES;
+  saveProfile();
+  
+  Serial.print("Changed to profile: ");
+  Serial.print(currentProfile + 1);
+  Serial.print(" (");
+  Serial.print(profiles[currentProfile].name);
+  Serial.println(")");
+  
+  // Blink LED to indicate new profile
+  blinkIndicator(RED_LED_PIN, currentProfile + 1);
+}
+
+void blinkIndicator(uint8_t pin, uint8_t count) {
+  // Turn LED first
+  digitalWrite(pin, HIGH);
+  
+  delay(500); // Initial pause
+  
+  // Blink LED the number of times corresponding to the profile
+  for (uint8_t i = 0; i < count; i++) {
+    digitalWrite(pin, LOW);  // Turn on LED (active low)
+    delay(300);
+    digitalWrite(pin, HIGH); // Turn off LED
+    delay(300);
+  }
+  
+  delay(500); // Final pause
+}
+
+void updateJoystickButtons() {
+  // Get current profile
+  const ButtonProfile& profile = profiles[currentProfile];
+  
+  // Create button array (12 buttons total)
+  bool buttons[12] = {false};
+  
+  // Map NES buttons to joystick buttons based on current profile
+  buttons[profile.buttonA - 1] = nesController->getButtonState(playerSelection, NESController::BUTTON_A);
+  buttons[profile.buttonB - 1] = nesController->getButtonState(playerSelection, NESController::BUTTON_B);
+  buttons[profile.buttonSelect - 1] = nesController->getButtonState(playerSelection, NESController::BUTTON_SELECT);
+  buttons[profile.buttonStart - 1] = nesController->getButtonState(playerSelection, NESController::BUTTON_START);
+  
+  // Set all buttons at once
+  joystick->setButtons(
+    buttons[0], buttons[1], buttons[2], buttons[3],
+    buttons[4], buttons[5], buttons[6], buttons[7],
+    buttons[8], buttons[9], buttons[10], buttons[11]
+  );
+}
+
+void loadDirectionalMode() {
+  uint8_t savedMode = preferences.getUChar("directionalMode", DPAD_ONLY);
+  if (savedMode >= NUM_DIRECTIONAL_MODES) {
+    savedMode = DPAD_ONLY; // Default to dpad only if invalid
+  }
+  currentDirectionalMode = (DirectionalMode)savedMode;
+  
+  Serial.print("Loaded directional mode: ");
+  Serial.print((uint8_t)currentDirectionalMode + 1);
+  Serial.print(" (");
+  Serial.print(directionalModeNames[currentDirectionalMode]);
+  Serial.println(")");
+}
+
+void saveDirectionalMode() {
+  preferences.putUChar("directionalMode", (uint8_t)currentDirectionalMode);
+  Serial.print("Saved directional mode: ");
+  Serial.print((uint8_t)currentDirectionalMode + 1);
+  Serial.print(" (");
+  Serial.print(directionalModeNames[currentDirectionalMode]);
+  Serial.println(")");
+}
+
+void changeDirectionalMode() {
+  currentDirectionalMode = (DirectionalMode)(((uint8_t)currentDirectionalMode + 1) % NUM_DIRECTIONAL_MODES);
+  saveDirectionalMode();
+  
+  Serial.print("Changed to directional mode: ");
+  Serial.print((uint8_t)currentDirectionalMode + 1);
+  Serial.print(" (");
+  Serial.print(directionalModeNames[currentDirectionalMode]);
+  Serial.println(")");
+  
+  // Blink LED to indicate new directional mode
+  blinkIndicator(RED_LED_PIN, (uint8_t)currentDirectionalMode + 1);
+}
+
+void updateJoystickDirectional() {
+  // Get directional values from controller
+  uint8_t dpadDirection = nesController->getHatDirection(playerSelection);
+  int8_t x = nesController->getXAxis(playerSelection);
+  int8_t y = nesController->getYAxis(playerSelection);
+  
+  // Apply directional input based on current mode
+  switch (currentDirectionalMode) {
+    case DPAD_ONLY:
+      joystick->setHat(dpadDirection);
+      joystick->setAxes(0, 0, 0, 0, 0, 0, 0, 0); // Clear axes
+      break;
+      
+    case AXES_ONLY:
+      joystick->setHat(0); // Clear hat/dpad
+      joystick->setAxes(x, y, 0, 0, 0, 0, 0, 0);
+      break;
+      
+    case BOTH:
+      joystick->setHat(dpadDirection);
+      joystick->setAxes(x, y, 0, 0, 0, 0, 0, 0);
+      break;
+  }
 }
