@@ -1,7 +1,7 @@
 #include "BLEJoystick.h"
 #include <Arduino.h>
 
-// HID Report Descriptor for a joystick
+// HID Report Descriptor for a single joystick
 const uint8_t BLEJoystick::hidReportDescriptor[] = {
     0x05, 0x01,        // Usage Page (Generic Desktop)
     0x09, 0x05,        // Usage (Gamepad)
@@ -51,20 +51,36 @@ const uint8_t BLEJoystick::hidReportDescriptor[] = {
     0x75, 0x08,        // Report Size (8)
     0x95, 0x02,        // Report Count (2)
     0x81, 0x02,        // Input (Data, Variable, Absolute)
-    0xC0,              // End Collection
-    
+
+    0xC0,              // End Collection 
     0xC0               // End Collection
 };
 
 // Constructor implementation
-BLEJoystick::BLEJoystick(std::string deviceName, std::string manufacturerName) {
+BLEJoystick::BLEJoystick(std::string deviceName, std::string manufacturerName, 
+                            uint16_t vendorId, uint16_t productId, uint8_t numDevices) {
+    // Validate and set number of devices (1-4 supported)
+    this->numDevices = (numDevices >= 1 && numDevices <= 4) ? numDevices : 1;
+    
     deviceState = DEVICE_STOPPED;
     batteryLevel = 100;
     
-    // Initialize HID report data
-    memset(buttons, 0, sizeof(buttons));
-    memset(axes, 0, sizeof(axes));
-    hat = 0;
+    // Allocate dynamic arrays for HID devices and characteristics
+    pHidDevice = new NimBLEHIDDevice*[this->numDevices];
+    pInputCharacteristic = new NimBLECharacteristic*[this->numDevices];
+    
+    // Allocate dynamic arrays for HID report data
+    buttons = new uint8_t*[this->numDevices];
+    axes = new int16_t*[this->numDevices];
+    hat = new uint8_t[this->numDevices];
+    
+    for (uint8_t i = 0; i < this->numDevices; i++) {
+        buttons[i] = new uint8_t[2];
+        axes[i] = new int16_t[8];
+        memset(buttons[i], 0, 2 * sizeof(uint8_t));
+        memset(axes[i], 0, 8 * sizeof(int16_t));
+        hat[i] = 0;
+    }
     
     // Initialize BLE
     NimBLEDevice::init(deviceName);
@@ -78,26 +94,48 @@ BLEJoystick::BLEJoystick(std::string deviceName, std::string manufacturerName) {
     pServer->setCallbacks(new ServerCallbacks(this));
     pServer->advertiseOnDisconnect(false); // Default to false
     
-    // Create HID device
-    pHidDevice = new NimBLEHIDDevice(pServer);
-    pHidDevice->reportMap((uint8_t*)hidReportDescriptor, sizeof(hidReportDescriptor));
+    // Create HID devices for each player (in reverse order so first device is seen as joystick 0)
+    for (int8_t i = this->numDevices - 1; i >= 0; i--) {
+        pHidDevice[i] = new NimBLEHIDDevice(pServer);
+        pHidDevice[i]->reportMap((uint8_t*)hidReportDescriptor, sizeof(hidReportDescriptor));
+        pHidDevice[i]->manufacturer()->setValue(manufacturerName);
+        pHidDevice[i]->pnp(0x01, vendorId, productId, 0x0110);
+        pHidDevice[i]->hidInfo(0x00, 0x01);
+        
+        // Create input characteristic for this player
+        pInputCharacteristic[i] = pHidDevice[i]->inputReport(1);
+        
+        // Start the HID device
+        pHidDevice[i]->startServices();
+    }
     
-    // Create input characteristic
-    pInputCharacteristic = pHidDevice->inputReport(1);
-    
-    // Create battery service
-    pBatteryCharacteristic = pHidDevice->batteryLevel();
-    
-    // Start device
-    pHidDevice->startServices();
-    
-    // Set device information
-    pHidDevice->manufacturer()->setValue(manufacturerName);
-    pHidDevice->pnp(0x01, 0x02E5, 0xABCD, 0x0110);
-    pHidDevice->hidInfo(0x00, 0x01);
+    // Create battery service on the last HID device
+    pBatteryCharacteristic = pHidDevice[this->numDevices - 1]->batteryLevel();
     
     // Set initial battery level
     setBatteryLevel(100);
+}
+
+// Destructor implementation
+BLEJoystick::~BLEJoystick() {
+    // Clean up dynamic arrays
+    if (buttons) {
+        for (uint8_t i = 0; i < numDevices; i++) {
+            delete[] buttons[i];
+        }
+        delete[] buttons;
+    }
+    
+    if (axes) {
+        for (uint8_t i = 0; i < numDevices; i++) {
+            delete[] axes[i];
+        }
+        delete[] axes;
+    }
+    
+    delete[] hat;
+    delete[] pHidDevice;
+    delete[] pInputCharacteristic;
 }
 
 // Start the BLE device
@@ -121,7 +159,10 @@ void BLEJoystick::startAdvertising() {
     if (deviceState == DEVICE_IDLE) {
         NimBLEAdvertising* pAdvertising = NimBLEDevice::getAdvertising();
         pAdvertising->setAppearance(HID_GAMEPAD);
-        pAdvertising->addServiceUUID(pHidDevice->hidService()->getUUID());
+        // Advertise HID services in reverse order to match creation order
+        for (int8_t i = numDevices - 1; i >= 0; i--) {
+            pAdvertising->addServiceUUID(pHidDevice[i]->hidService()->getUUID());
+        }
         pAdvertising->setScanResponse(true);
         pAdvertising->start();
         
@@ -162,108 +203,132 @@ void BLEJoystick::disconnect() {
     }
 }
 
-// Set button states
-void BLEJoystick::setButtons(bool b1, bool b2, bool b3, bool b4, bool b5, bool b6,
-                            bool b7, bool b8, bool b9, bool b10, bool b11, bool b12) {
+// Set button states for a specific player
+void BLEJoystick::setPlayerButtons(uint8_t player, bool b1, bool b2, bool b3, bool b4, bool b5, bool b6,
+                                  bool b7, bool b8, bool b9, bool b10, bool b11, bool b12) {
+    if (player >= numDevices) return; // Invalid player
+    
     // First byte contains buttons 1-8
-    buttons[0] = 0;
-    if (b1) buttons[0] |= (1 << 0);
-    if (b2) buttons[0] |= (1 << 1);
-    if (b3) buttons[0] |= (1 << 2);
-    if (b4) buttons[0] |= (1 << 3);
-    if (b5) buttons[0] |= (1 << 4);
-    if (b6) buttons[0] |= (1 << 5);
-    if (b7) buttons[0] |= (1 << 6);
-    if (b8) buttons[0] |= (1 << 7);
+    buttons[player][0] = 0;
+    if (b1) buttons[player][0] |= (1 << 0);
+    if (b2) buttons[player][0] |= (1 << 1);
+    if (b3) buttons[player][0] |= (1 << 2);
+    if (b4) buttons[player][0] |= (1 << 3);
+    if (b5) buttons[player][0] |= (1 << 4);
+    if (b6) buttons[player][0] |= (1 << 5);
+    if (b7) buttons[player][0] |= (1 << 6);
+    if (b8) buttons[player][0] |= (1 << 7);
     
     // Second byte contains buttons 9-12 (and padding)
-    buttons[1] = 0;
-    if (b9) buttons[1] |= (1 << 0);
-    if (b10) buttons[1] |= (1 << 1);
-    if (b11) buttons[1] |= (1 << 2);
-    if (b12) buttons[1] |= (1 << 3);
+    buttons[player][1] = 0;
+    if (b9) buttons[player][1] |= (1 << 0);
+    if (b10) buttons[player][1] |= (1 << 1);
+    if (b11) buttons[player][1] |= (1 << 2);
+    if (b12) buttons[player][1] |= (1 << 3);
 }
 
-// Set axis values
+// Set button states (legacy method - uses player 0)
+void BLEJoystick::setButtons(bool b1, bool b2, bool b3, bool b4, bool b5, bool b6,
+                            bool b7, bool b8, bool b9, bool b10, bool b11, bool b12) {
+    setPlayerButtons(0, b1, b2, b3, b4, b5, b6, b7, b8, b9, b10, b11, b12);
+}
+
+// Set axis values for a specific player
+void BLEJoystick::setPlayerAxes(uint8_t player, int16_t x, int16_t y, int16_t z, int16_t rZ, 
+                               int16_t rX, int16_t rY, int16_t slider1, int16_t slider2) {
+    if (player >= numDevices) return; // Invalid player
+    
+    axes[player][0] = x;
+    axes[player][1] = y;
+    axes[player][2] = z;
+    axes[player][3] = rZ;
+    axes[player][4] = rX;
+    axes[player][5] = rY;
+    axes[player][6] = slider1;
+    axes[player][7] = slider2;
+}
+
+// Set axis values (legacy method - uses player 0)
 void BLEJoystick::setAxes(int16_t x, int16_t y, int16_t z, int16_t rZ, 
                           int16_t rX, int16_t rY, int16_t slider1, int16_t slider2) {
-    axes[0] = x;
-    axes[1] = y;
-    axes[2] = z;
-    axes[3] = rZ;
-    axes[4] = rX;
-    axes[5] = rY;
-    axes[6] = slider1;
-    axes[7] = slider2;
+    setPlayerAxes(0, x, y, z, rZ, rX, rY, slider1, slider2);
 }
 
-// Set hat direction
+// Set hat direction for a specific player
+void BLEJoystick::setPlayerHat(uint8_t player, uint8_t hatDirection) {
+    if (player >= numDevices) return; // Invalid player
+    hat[player] = hatDirection <= 8 ? hatDirection : 0;
+}
+
+// Set hat direction (legacy method - uses player 0)
 void BLEJoystick::setHat(uint8_t hatDirection) {
-    hat = hatDirection <= 8 ? hatDirection : 0;
+    setPlayerHat(0, hatDirection);
 }
 
-// Notify HID report to connected client
-void BLEJoystick::notifyHIDReport() {
-    if (deviceState == DEVICE_CONNECTED) {
-        uint8_t report[5];  // Increased size to include Y axis
-        
-        report[0] = buttons[0];
-        report[1] = buttons[1];
-        report[2] = (hat & 0x0F);
-        report[3] = axes[0]; // X axis
-        report[4] = axes[1]; // Y axis
-        
-        // Debug output in a human-readable format
-        Serial.println("=== HID REPORT DEBUG ===");
-        
-        for (int i = 0; i < 8; i++) {
-            Serial.print("  Button ");
-            Serial.print(i + 1);
-            Serial.print(": ");
-            Serial.println((report[0] & (1 << i)) ? "PRESSED" : "released");
-        }
-        for (int i = 0; i < 4; i++) {
-            Serial.print("  Button ");
-            Serial.print(i + 9);
-            Serial.print(": ");
-            Serial.println((report[1] & (1 << i)) ? "PRESSED" : "released");
-        }
-        
-        // Hat switch (third byte)
-        Serial.print("Hat Direction: ");
-        switch(report[2]) {
-            case 0: Serial.println("CENTERED"); break;
-            case 1: Serial.println("UP"); break;
-            case 2: Serial.println("UP-RIGHT"); break;
-            case 3: Serial.println("RIGHT"); break;
-            case 4: Serial.println("DOWN-RIGHT"); break;
-            case 5: Serial.println("DOWN"); break;
-            case 6: Serial.println("DOWN-LEFT"); break;
-            case 7: Serial.println("LEFT"); break;
-            case 8: Serial.println("UP-LEFT"); break;
-            default: Serial.println("UNKNOWN"); break;
-        }
-        
-        // X and Y axes
-        Serial.print("X-Axis: ");
-        Serial.print(report[3]);
-        Serial.print(" Y-Axis: ");
-        Serial.println(report[4]);
-        
-        // Raw HID report values
-        Serial.print("Raw HID Report: [");
-        for (int i = 0; i < 5; i++) {
-            Serial.print("0x");
-            if (report[i] < 16) Serial.print("0"); // Ensure 2 digit hex
-            Serial.print(report[i], HEX);
-            if (i < 4) Serial.print(", ");
-        }
-        Serial.println("]");
-        Serial.println("======================");
-        
-        pInputCharacteristic->setValue(report, sizeof(report));
-        pInputCharacteristic->notify();
+// Notify HID report to connected client for a specific player
+void BLEJoystick::notifyPlayerHIDReport(uint8_t player) {
+    if (player >= numDevices || deviceState != DEVICE_CONNECTED) return;
+    
+    uint8_t report[5];  // Report includes 2 button bytes, 1 hat byte, and 2 axis bytes
+    
+    report[0] = buttons[player][0];
+    report[1] = buttons[player][1];
+    report[2] = (hat[player] & 0x0F);
+    report[3] = axes[player][0]; // X axis
+    report[4] = axes[player][1]; // Y axis
+    
+    // Debug output in a human-readable format
+    Serial.print("=== HID REPORT DEBUG PLAYER ");
+    Serial.print(player + 1);
+    Serial.println(" ===");
+    
+    for (int i = 0; i < 8; i++) {
+        Serial.print("  Button ");
+        Serial.print(i + 1);
+        Serial.print(": ");
+        Serial.println((report[0] & (1 << i)) ? "PRESSED" : "released");
     }
+    for (int i = 0; i < 4; i++) {
+        Serial.print("  Button ");
+        Serial.print(i + 9);
+        Serial.print(": ");
+        Serial.println((report[1] & (1 << i)) ? "PRESSED" : "released");
+    }
+    
+    // Hat switch (third byte)
+    Serial.print("Hat Direction: ");
+    switch(report[2]) {
+        case 0: Serial.println("CENTERED"); break;
+        case 1: Serial.println("UP"); break;
+        case 2: Serial.println("UP-RIGHT"); break;
+        case 3: Serial.println("RIGHT"); break;
+        case 4: Serial.println("DOWN-RIGHT"); break;
+        case 5: Serial.println("DOWN"); break;
+        case 6: Serial.println("DOWN-LEFT"); break;
+        case 7: Serial.println("LEFT"); break;
+        case 8: Serial.println("UP-LEFT"); break;
+        default: Serial.println("UNKNOWN"); break;
+    }
+    
+    // X and Y axes
+    Serial.print("X-Axis: ");
+    Serial.print(report[3]);
+    Serial.print(" Y-Axis: ");
+    Serial.println(report[4]);
+    
+    // Raw HID report values
+    Serial.print("Raw HID Report: [");
+    for (int i = 0; i < 5; i++) {
+        Serial.print("0x");
+        if (report[i] < 16) Serial.print("0"); // Ensure 2 digit hex
+        Serial.print(report[i], HEX);
+        if (i < 4) Serial.print(", ");
+    }
+    Serial.println("]");
+    Serial.println("======================");
+    
+    pInputCharacteristic[player]->setValue(report, sizeof(report));
+    pInputCharacteristic[player]->notify();
 }
 
 // Set battery level
@@ -282,6 +347,11 @@ void BLEJoystick::notifyBatteryLevel() {
 // Get current device state
 uint8_t BLEJoystick::getState() const {
     return deviceState;
+}
+
+// Get number of players
+uint8_t BLEJoystick::getNumDevices() const {
+    return numDevices;
 }
 
 // Set state change callback

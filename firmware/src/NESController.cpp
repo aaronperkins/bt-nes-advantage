@@ -12,6 +12,7 @@ NESController::NESController(uint8_t clkPin1, uint8_t clkPin2, uint8_t latchPin,
         _stateChanged[i] = false;
     }
     
+    _playerSelection = 0;
     _lastActivityTime = millis();
 }
 
