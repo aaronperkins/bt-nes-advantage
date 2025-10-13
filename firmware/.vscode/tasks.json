@@ -80,30 +80,6 @@
             "args": [
                 "~/.platformio/packages/tool-esptoolpy/esptool.py",
                 "--chip", "esp32c3",
-                "--port", "${input:serialPort}",
-                "--baud", "460800",
-                "write_flash",
-                "0x0", "${workspaceFolder}/dist/bt_nes_advantage_lolin_c3_mini.bin"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "always",
-                "focus": false,
-                "panel": "shared",
-                "showReuseMessage": true,
-                "clear": false
-            },
-            "dependsOn": "Create Merged Binary",
-            "dependsOrder": "sequence"
-        },
-        {
-            "label": "Upload Merged Binary (Auto-detect Port)",
-            "type": "shell",
-            "command": "python3",
-            "args": [
-                "~/.platformio/packages/tool-esptoolpy/esptool.py",
-                "--chip", "esp32c3",
                 "--baud", "460800",
                 "write_flash",
                 "0x0", "${workspaceFolder}/dist/bt_nes_advantage_lolin_c3_mini.bin"
@@ -126,7 +102,7 @@
             "dependsOn": [
                 "Build Release",
                 "Create Merged Binary",
-                "Upload Merged Binary (Auto-detect Port)"
+                "Upload Merged Binary"
             ],
             "group": "build",
             "presentation": {

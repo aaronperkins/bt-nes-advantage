@@ -15,9 +15,9 @@ The BT-NES-Advantage is a custom Bluetooth adapter built into the NES Advantage 
 - Wireless Bluetooth connectivity
 - Turbo and slow motion functions work as normal
 - Player select switch
-   - Both players currently map to controller one. In the future it may be possible to maintain two controller connections.
+   - Exposes two game input devices for player 1 and 2. The player select switch redirects output to one or the other.
 - Standard gamepad HID implementation, tested with:
-   - BlueRetro
+   - BlueRetro (only works with player 1 switch)
    - Windows
    - Android
    - SteamOS
@@ -205,21 +205,33 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
 
 1. **Download the Firmware**
    - Go to the [Releases page](https://github.com/aaronperkins/bt-nes-advantage/releases) on GitHub
-   - Download the latest `bootloader.bin`, `partitions.bin ` and `firmware.bin` files
+   - Download the latest firmware release
 
 2. **Install ESP Flash Tool**
-   - Download the [ESP Flash Download Tool](https://www.espressif.com/en/support/download/other-tools) from Espressif
-   - For Windows: Use the ESP Flash Download Tool GUI
    - For Linux/Mac: Install `esptool` via pip:
      ```bash
      pip install esptool
      ```
+   - For Windows: Download the [ESP Flash Download Tool](https://www.espressif.com/en/support/download/other-tools) from Espressif
 
 3. **Connect the ESP32-C3 SuperMini**
    - Connect the ESP32-C3 SuperMini module to your computer via USB
    - Put the device in download mode by holding the BOOT button while connecting
 
 4. **Flash the Firmware**
+   
+   #### Option A: Single Merged Binary (Easiest)
+   If a merged binary file (`bt_nes_advantage_lolin_c3_mini.bin`) is available:
+   ```bash
+   esptool.py --chip esp32c3 write_flash 0x0 bt_nes_advantage_lolin_c3_mini.bin
+   ```
+   
+   #### Option B: Individual Binary Files
+   If using separate `bootloader.bin`, `partitions.bin`, and `firmware.bin` files:
+   - For Linux/Mac (using esptool):
+     ```bash
+     esptool.py --chip esp32c3 write_flash 0x0000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin
+     ```
    - For Windows (using ESP Flash Download Tool):
      - Select Chip Type: ESP32-C3
      - Select bootloader.bin at address 0x0000
@@ -227,11 +239,6 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
      - Select firmware.bin at address 0x10000
      - Select the correct COM port
      - Click "START" to begin flashing
-   
-   - For Linux/Mac (using esptool):
-     ```bash
-     esptool.py write_flash 0x0000 bootloader.bin 0x8000 partitions.bin 0x10000 firmware.bin
-     ```
 
 5. **Verify Installation**
    - After flashing completes, press the RST button or disconnect and reconnect the device
@@ -249,7 +256,6 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
 
 1. **Install PlatformIO**
    - Install PlatformIO IDE as an extension for VSCode
-   - Or install the PlatformIO Core CLI
 
 2. **Clone the Repository**
    ```bash
@@ -259,47 +265,30 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
 
 3. **Open the Project in PlatformIO**
    - In VSCode with PlatformIO extension, select "Open Project" and choose the `firmware` folder
-   - Or from the command line:
-     ```bash
-     cd firmware
-     pio project init
-     ```
+   
 
 4. **Configure the Project**
-   - The `platformio.ini` file is already configured with the correct settings:
-     ```ini
-     [env:lolin_c3_mini]
-     platform = espressif32
-     board = lolin_c3_mini
-     framework = arduino
-     lib_deps =
-         h2zero/NimBLE-Arduino@^1.4.1
-     ```
+   - The `platformio.ini` file is already configured with the correct settings
 
 5. **Build the Project**
    - In PlatformIO IDE, click on the "Build" button
-   - Or from the command line:
-     ```bash
-     pio run
-     ```
 
-1. **Connect the ESP32-C3 SuperMini**
+6. **Connect the ESP32-C3 SuperMini**
    - Connect the ESP32-C3 SuperMini module to your computer via USB
    - If you've already installed it in the controller, you'll need to either:
      - Connect to the USB port on the module
 
-2. **Upload the Firmware**
+7. **Upload the Firmware**
    - In PlatformIO IDE, click on the "Upload" button
-   - Or from the command line:
-     ```bash
-     pio run -t upload
-     ```
 
-3. **Monitor Serial Output (Optional)**
-   - For debugging, you can monitor the serial output at 9600 baud
+8. **Create Distribution Files (Optional)**
+   - If using VS Code with the included tasks, you can create merged firmware files for distribution:
+     - Press `Ctrl+Shift+P` and select "Tasks: Run Task"
+     - Choose "Full Release Build" to create optimized firmware with merged binary
+     - Or choose "Build and Upload Release" to build and upload in one step
+     - Distribution files will be created in the `dist/` folder
+
+9. **Monitor Serial Output (Optional)**
+   - For debugging, you can monitor the serial output at 115200 baud
    - In PlatformIO IDE, click on the "Serial Monitor" button
-   - Or from the command line:
-     ```bash
-     pio device monitor -b 9600
-     ```
 
