@@ -1,0 +1,139 @@
+{
+    "version": "2.0.0",
+    "inputs": [
+        {
+            "id": "serialPort",
+            "description": "Serial port for device upload",
+            "default": "/dev/ttyUSB0",
+            "type": "promptString"
+        }
+    ],
+    "tasks": [
+        {
+            "label": "Build Release",
+            "type": "shell",
+            "command": "~/.platformio/penv/bin/platformio",
+            "args": ["run", "--environment", "lolin_c3_mini_release"],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "problemMatcher": ["$platformio"]
+        },
+        {
+            "label": "Create Merged Binary",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "~/.platformio/packages/tool-esptoolpy/esptool.py",
+                "--chip", "esp32c3",
+                "merge_bin",
+                "-o", "${workspaceFolder}/dist/bt_nes_advantage_lolin_c3_mini.bin",
+                "--flash_mode", "dio",
+                "--flash_freq", "80m",
+                "--flash_size", "4MB",
+                "0x0", "${workspaceFolder}/.pio/build/lolin_c3_mini_release/bootloader.bin",
+                "0x8000", "${workspaceFolder}/.pio/build/lolin_c3_mini_release/partitions.bin",
+                "0x10000", "${workspaceFolder}/.pio/build/lolin_c3_mini_release/firmware.bin"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "dependsOn": "Build Release",
+            "dependsOrder": "sequence"
+        },
+        {
+            "label": "Create Distribution Package",
+            "type": "shell",
+            "command": "bash",
+            "args": [
+                "-c",
+                "mkdir -p ${workspaceFolder}/dist && cp ${workspaceFolder}/.pio/build/lolin_c3_mini_release/firmware.bin ${workspaceFolder}/dist/ && cp ${workspaceFolder}/.pio/build/lolin_c3_mini_release/bootloader.bin ${workspaceFolder}/dist/ && cp ${workspaceFolder}/.pio/build/lolin_c3_mini_release/partitions.bin ${workspaceFolder}/dist/ && echo 'Distribution files created in dist/ folder:' && ls -la ${workspaceFolder}/dist/"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "dependsOn": "Create Merged Binary",
+            "dependsOrder": "sequence"
+        },
+        {
+            "label": "Upload Merged Binary",
+            "type": "shell",
+            "command": "python3",
+            "args": [
+                "~/.platformio/packages/tool-esptoolpy/esptool.py",
+                "--chip", "esp32c3",
+                "--baud", "460800",
+                "write_flash",
+                "0x0", "${workspaceFolder}/dist/bt_nes_advantage_lolin_c3_mini.bin"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            },
+            "dependsOn": "Create Merged Binary",
+            "dependsOrder": "sequence"
+        },
+        {
+            "label": "Build and Upload Release",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build Release",
+                "Create Merged Binary",
+                "Upload Merged Binary"
+            ],
+            "group": "build",
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
+        },
+        {
+            "label": "Full Release Build",
+            "dependsOrder": "sequence",
+            "dependsOn": [
+                "Build Release",
+                "Create Merged Binary",
+                "Create Distribution Package"
+            ],
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "echo": true,
+                "reveal": "always",
+                "focus": false,
+                "panel": "shared",
+                "showReuseMessage": true,
+                "clear": false
+            }
+        }
+    ]
+}

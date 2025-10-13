@@ -115,8 +115,8 @@ void blinkIndicator(uint8_t profile, uint8_t count);
 void loadDirectionalMode();
 void saveDirectionalMode();
 void changeDirectionalMode();
-void updateJoystickDirectional();
-void updateJoystickButtons();
+void updateJoystickDirectional(uint8_t player);
+void updateJoystickButtons(uint8_t player);
 bool readBatteryState();
 void checkTimers();
 void enterSleepMode();
@@ -129,27 +129,30 @@ void setup() {
   // Initialize NES controller
   nesController = new NESController(CLK_PIN_P1, CLK_PIN_P2, LATCH_PIN, DATA_PIN_P1, DATA_PIN_P2);
   nesController->begin();
-  nesController->setPlayerSelectionCallback(playerSelectionCallback);
-
-  // Configure battery state pins
+  nesController->read();
+  playerSelection = nesController->getPlayerSelection();
+  
+  // Initialize battery state
   pinMode(BATTERY_CHARGE_PIN, INPUT_PULLUP);
   pinMode(BATTERY_STANDBY_PIN, INPUT_PULLUP);
-
-  // Initialize battery readings
   readBatteryState();
 
   // If sleeping, keep sleeping until the start button is held or battery is charging
   if (sleeping) {
-    nesController->read();
-    playerSelection = nesController->getPlayerSelection();
-    if (!nesController->getButtonState(playerSelection, NESController::BUTTON_START)
-          && !isExternalPower) {
-      enterSleepMode();
-    }
-    else {
+    if (nesController->getButtonState(playerSelection, NESController::BUTTON_START)
+          || isExternalPower) {
       sleeping = false;
     }
+    else {
+      enterSleepMode();   
+    }
   }
+
+  // Initialize serial for debugging
+  Serial.begin(9600);
+
+  // Set up NES controller player selection callback
+  nesController->setPlayerSelectionCallback(playerSelectionCallback);
 
   // Configure LED pins
   pinMode(RED_LED_PIN, OUTPUT);
@@ -158,9 +161,6 @@ void setup() {
   digitalWrite(RED_LED_PIN, HIGH);
   digitalWrite(GREEN_LED_PIN, HIGH);
   digitalWrite(BLUE_LED_PIN, HIGH);
-
-  // Initialize serial for debugging
-  Serial.begin(9600);
 
   // Load saved profile
   loadProfile();
@@ -174,7 +174,7 @@ void setup() {
   lastBatteryCheck = millis();
 
   // Initialize the BLE joystick and begin advertising
-  joystick = new BLEJoystick("NES Advantage", "Cajun Panda's Retro Gaming");
+  joystick = new BLEJoystick("NES Advantage", "Cajun Panda's Retro Gaming", 0x42CA, 0x42CD, 2);
   joystick->setStateChangeCallback(joystickStateCallback);
   joystick->start();
   joystick->startAdvertising();
@@ -183,20 +183,21 @@ void setup() {
 void loop() {
   nesController->read();
  
-  // Update joystick if state changed
-  if (nesController->stateChanged(playerSelection)) {
+  // Update joystick if state changed for either player
+  bool anyStateChanged = nesController->stateChanged(0) || nesController->stateChanged(1);
+  
+  if (anyStateChanged) {
 
     reportControllerState();
 
     // If connected, update BLE Joystick state
     if (joystick->getState() == BLEJoystick::DEVICE_CONNECTED) {
-      // Update directional input based on current mode
-      updateJoystickDirectional();
       
-      // Update button states based on current profile
-      updateJoystickButtons();
+      // Update joystick state based on current player selection
+      updateJoystickDirectional(playerSelection);
+      updateJoystickButtons(playerSelection);
+      joystick->notifyPlayerHIDReport(playerSelection);
       
-      joystick->notifyHIDReport();
     // else begin advertising
     } else if (joystick->getState() == BLEJoystick::DEVICE_IDLE 
                 && selectButtonPressTime == 0) {
@@ -209,14 +210,17 @@ void loop() {
 
 void reportControllerState()
 {
-  Serial.print("NES State P");
-  Serial.print(playerSelection + 1);
-  Serial.print(": ");
-  for (int i = 0; i < 8; i++)
-  {
-    Serial.print(nesController->getButtonState(playerSelection, i) ? "1" : "0");
+  // Report both players
+  for (int player = 0; player < 2; player++) {
+    Serial.print("NES State P");
+    Serial.print(player + 1);
+    Serial.print(": ");
+    for (int i = 0; i < 8; i++)
+    {
+      Serial.print(nesController->getButtonState(player, i) ? "1" : "0");
+    }
+    Serial.println();
   }
-  Serial.println();
 }
 
 void joystickStateCallback() {
@@ -246,6 +250,17 @@ void joystickStateCallback() {
 }
 
 void playerSelectionCallback(uint8_t newPlayer) {
+  // Clear previous player state
+  joystick->setPlayerButtons(playerSelection,
+    false, false, false, false,
+    false, false, false, false,
+    false, false, false, false
+  );
+  joystick->setPlayerHat(playerSelection, 0);
+  joystick->setPlayerAxes(playerSelection, 0, 0, 0, 0, 0, 0, 0, 0);
+  joystick->notifyPlayerHIDReport(playerSelection);
+
+  // set new player selection
   playerSelection = newPlayer;
   Serial.print("Player selection changed to P");
   Serial.println(playerSelection + 1);
@@ -516,7 +531,7 @@ void blinkIndicator(uint8_t pin, uint8_t count) {
   delay(500); // Final pause
 }
 
-void updateJoystickButtons() {
+void updateJoystickButtons(uint8_t player) {
   // Get current profile
   const ButtonProfile& profile = profiles[currentProfile];
   
@@ -524,13 +539,13 @@ void updateJoystickButtons() {
   bool buttons[12] = {false};
   
   // Map NES buttons to joystick buttons based on current profile
-  buttons[profile.buttonA - 1] = nesController->getButtonState(playerSelection, NESController::BUTTON_A);
-  buttons[profile.buttonB - 1] = nesController->getButtonState(playerSelection, NESController::BUTTON_B);
-  buttons[profile.buttonSelect - 1] = nesController->getButtonState(playerSelection, NESController::BUTTON_SELECT);
-  buttons[profile.buttonStart - 1] = nesController->getButtonState(playerSelection, NESController::BUTTON_START);
+  buttons[profile.buttonA - 1] = nesController->getButtonState(player, NESController::BUTTON_A);
+  buttons[profile.buttonB - 1] = nesController->getButtonState(player, NESController::BUTTON_B);
+  buttons[profile.buttonSelect - 1] = nesController->getButtonState(player, NESController::BUTTON_SELECT);
+  buttons[profile.buttonStart - 1] = nesController->getButtonState(player, NESController::BUTTON_START);
   
-  // Set all buttons at once
-  joystick->setButtons(
+  // Set all buttons at once for the specific player
+  joystick->setPlayerButtons(player,
     buttons[0], buttons[1], buttons[2], buttons[3],
     buttons[4], buttons[5], buttons[6], buttons[7],
     buttons[8], buttons[9], buttons[10], buttons[11]
@@ -574,27 +589,27 @@ void changeDirectionalMode() {
   blinkIndicator(RED_LED_PIN, (uint8_t)currentDirectionalMode + 1);
 }
 
-void updateJoystickDirectional() {
-  // Get directional values from controller
-  uint8_t dpadDirection = nesController->getHatDirection(playerSelection);
-  int8_t x = nesController->getXAxis(playerSelection);
-  int8_t y = nesController->getYAxis(playerSelection);
+void updateJoystickDirectional(uint8_t player) {
+  // Get directional values from controller for the specific player
+  uint8_t dpadDirection = nesController->getHatDirection(player);
+  int8_t x = nesController->getXAxis(player);
+  int8_t y = nesController->getYAxis(player);
   
-  // Apply directional input based on current mode
+  // Apply directional input based on current mode for the specific player
   switch (currentDirectionalMode) {
     case DPAD_ONLY:
-      joystick->setHat(dpadDirection);
-      joystick->setAxes(0, 0, 0, 0, 0, 0, 0, 0); // Clear axes
+      joystick->setPlayerHat(player, dpadDirection);
+      joystick->setPlayerAxes(player, 0, 0, 0, 0, 0, 0, 0, 0); // Clear axes
       break;
       
     case AXES_ONLY:
-      joystick->setHat(0); // Clear hat/dpad
-      joystick->setAxes(x, y, 0, 0, 0, 0, 0, 0);
+      joystick->setPlayerHat(player, 0); // Clear hat/dpad
+      joystick->setPlayerAxes(player, x, y, 0, 0, 0, 0, 0, 0);
       break;
       
     case BOTH:
-      joystick->setHat(dpadDirection);
-      joystick->setAxes(x, y, 0, 0, 0, 0, 0, 0);
+      joystick->setPlayerHat(player, dpadDirection);
+      joystick->setPlayerAxes(player, x, y, 0, 0, 0, 0, 0, 0);
       break;
   }
 }
