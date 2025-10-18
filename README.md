@@ -1,11 +1,11 @@
 # Bluetooth NES Advantage
 Integrated Bluetooth adapter for the NES Advantage (NES-026)
 
-![BT-NES-Advantage Hero Shot](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/main.jpg)
+![BT-NES-Advantage Hero Shot](docs/images/main.jpg)
 
-![PCB Top](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/bt-nes-advantage_top.png)
+![PCB Top](docs/images/bt-nes-advantage_top.png)
 
-![PCB Back](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/bt-nes-advantage_back.png)
+![PCB Back](docs/images/bt-nes-advantage_back.png)
 
 
 ## Overview
@@ -85,8 +85,19 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
 - The controller will automatically enter sleep mode after 5 minutes of inactivity to conserve power.
 - When advertising (pairing mode), the controller will stop advertising after 30 seconds to save battery.
 
-![Controller Charging](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/charging.jpg)
+![Controller Charging](docs/images/charging.jpg)
 *NES Advantage controller charging via 5V DC barrel jack*
+
+### 3D Printable DC Jack Plug
+
+For a clean installation, a custom 3D printable DC jack plug is available that fits perfectly in the NES Advantage case:
+
+![DC Jack Plug](docs/images/jack_plug.jpg)
+![DC Jack Plug Render](docs/images/jack-plug-render.png)
+
+**Download STL file**: [bt_nes_advantage-jack_plug.stl](models/bt_nes_advantage-jack_plug.stl)
+
+Print with a transparent PLA in order to see the status LEDs.
 
 ### Troubleshooting
 - If unable to pair with a new device, ensure the controller is in pairing mode (blue LED blinking).
@@ -100,7 +111,7 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
 - Original NES controller compatibility: 100% hardware compatible
 
 ## PCB Assembly Instructions
-![Finished PCB](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/finished_pcb_front.jpg)
+![Finished PCB](docs/images/finished_pcb_front.jpg)
 ### Bill of Materials (BOM)
 
 | Designator | Qty | Value | Footprint | Description | Notes |
@@ -131,10 +142,10 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
 - **Charging cable**: [DC 2.5x0.7mm Barrel Jack Power Cable](https://a.co/d/4bPUQj2)
 
 ### Schematic
-[Link to PDF](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/schematic.pdf)
+[Link to PDF](docs/schematic.pdf)
 
 ### Gerber
-[Link to Gerber files](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/pcb/bt-nes-advantage.kicad_pcb.zip)
+[Link to Gerber files](pcb/bt-nes-advantage.kicad_pcb.zip)
 
 ### Assembly Steps
 1. **PCB Preparation**
@@ -148,7 +159,7 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
      3. Diodes (D1-D3)
      4. LEDs (D4-D6) - Note the polarity! Cathode (K) is marked
      5. ICs (U1, U2)
-     ![U1 Orientation](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/u1_orientation.jpg)
+     ![U1 Orientation](docs/images/u1_orientation.jpg)
 *TP4057 U1 pin 1 may not be marked, make sure to get the orientation right by referencing this image and the datasheet.*
      6. Inductor (L1)
      7. DC Jack (J1)
@@ -168,7 +179,7 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
 
 4. **Power Connections**
    - The battery connector (J3) is for a 3.7V LiPo battery
-     ![Battery Connector Polarity](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/battery_connector_polarity.jpg)
+     ![Battery Connector Polarity](docs/images/battery_connector_polarity.jpg)
 *Check your battery polarity! There isn't a standard and it may be swapped from what is required!*   
    - Use appropriate JST PH connector with correct polarity
    - The power jack (J1) accepts 5V DC input
@@ -179,7 +190,7 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
     6. **Pin Mapping**
         - Refer to this pin mapping diagram for connecting the PCB to the NES Advantage controller:
         
-        ![NES Advantage Pin Mapping](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/pin_mapping.jpg)
+        ![NES Advantage Pin Mapping](docs/images/pin_mapping.jpg)
         
 7. **Installation in Controller**
     - Carefully open the NES Advantage controller by removing the screws from the bottom. Refer to this video for a full teardown:
@@ -188,16 +199,16 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
 
     - Install the battery in the recommended position:
     
-    ![Battery Placement](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/battery_placement.jpg)
+    ![Battery Placement](docs/images/battery_placement.jpg)
     
     - Place the PCB in the controller as shown below:
     
-    ![PCB Placement](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/board%20placement.jpg)
+    ![PCB Placement](docs/images/board%20placement.jpg)
     
     - Route wires to avoid interference with moving parts of the joystick
 
     - Finally add some insulating tape to the metal back cover to avoid accidental shorting when reassembling.
-    ![Back Cover Tape](https://raw.githubusercontent.com/aaronperkins/bt-nes-advantage/refs/heads/main/docs/images/back_cover.jpg)
+    ![Back Cover Tape](docs/images/back_cover.jpg)
 
 ## Firmware Instructions
 
@@ -247,15 +258,14 @@ To change directional modes, hold **Down + A + B** for 5 seconds. The red LED wi
 ### Option 2: Building and Uploading from Source
 
 #### Prerequisites
-- [PlatformIO](https://platformio.org/install) (recommended) or Arduino IDE
+- VSCode
+- PlatformIO VSCode extention
 - USB cable for connecting to the ESP32-C3 SuperMini module
-- Required libraries:
-  - NimBLE-Arduino (v1.4.1 or later)
 
 #### Building the Firmware with PlatformIO
 
 1. **Install PlatformIO**
-   - Install PlatformIO IDE as an extension for VSCode
+   - Install PlatformIO as an extension for VSCode
 
 2. **Clone the Repository**
    ```bash

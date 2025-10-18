@@ -1,0 +1,37 @@
+# FreeCAD backup files
+*.FCBak
+*.FCBak1
+*.FCBak2
+*.FCBak3
+*.FCBak4
+*.FCBak5
+*.FCBak6
+*.FCBak7
+*.FCBak8
+*.FCBak9
+
+# FreeCAD temporary files
+*.autosave
+*~
+
+# FreeCAD lock files
+*.lock
+
+# Operating system files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+
+# Log files
+*.log
