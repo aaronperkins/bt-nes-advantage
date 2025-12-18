@@ -10,6 +10,8 @@ Integrated Bluetooth adapter for the NES Advantage (NES-026)
 ## Where to buy
 Buy a completed kit ready to drop into your NES Advantage here:
 
+[Tindie](https://www.tindie.com/products/cajunpanda/bluetooth-nes-advantage-kit/)
+
 [Ko-Fi](https://ko-fi.com/s/c1f66f6bd5)
 
 ## Overview
