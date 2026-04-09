@@ -18,7 +18,7 @@ Buy a completed kit ready to drop into your NES Advantage here:
 The BT-NES-Advantage is a custom Bluetooth adapter built into the NES Advantage controller, allowing it to connect wirelessly to modern devices as a standard Bluetooth gamepad. This project uses an ESP32-C3 microcontroller to read the NES controller's inputs and transmit them via Bluetooth HID protocol.
 
 ## Features
-- Wireless Bluetooth connectivity
+- Wireless Bluetooth LE connectivity
 - Turbo and slow motion functions work as normal
 - Player select switch
    - Exposes two game input devices for player 1 and 2. The player select switch redirects output to one or the other.
@@ -28,6 +28,7 @@ The BT-NES-Advantage is a custom Bluetooth adapter built into the NES Advantage 
    - Android
    - SteamOS
    - Linux
+- *This mod does not work with the 8BitDo Retro Receiver, it doesn't support BLE*
 - Long battery life with low power sleep mode
 - RGB status LED indication
 - Battery level monitoring and reporting
