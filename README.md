@@ -1,4 +1,7 @@
 # Bluetooth NES Advantage
+
+> ⚠️ **This repository is obsolete (v1).** The Bluetooth NES Advantage has been fully redesigned. See the current **v2** repository for the latest hardware, firmware, and docs: **https://github.com/cajunpanda/bluetooth-nes-advantage**
+
 Integrated Bluetooth adapter for the NES Advantage (NES-026)
 
 ![BT-NES-Advantage Hero Shot](docs/images/main.jpg)
